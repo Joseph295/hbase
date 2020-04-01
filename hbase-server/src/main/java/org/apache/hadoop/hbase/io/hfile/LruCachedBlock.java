@@ -19,20 +19,20 @@
 package org.apache.hadoop.hbase.io.hfile;
 
 import org.apache.yetus.audience.InterfaceAudience;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.ClassSize;
 
 /**
  * Represents an entry in the {@link LruBlockCache}.
  *
- * <p>Makes the block memory-aware with {@link HeapSize} and Comparable
+ * <p>Makes the block memory-aware with {@link HeapSizeEstimater} and Comparable
  * to sort by access time for the LRU.  It also takes care of priority by
  * either instantiating as in-memory or handling the transition from single
  * to multiple access.
  */
 @InterfaceAudience.Private
-public class LruCachedBlock implements HeapSize, Comparable<LruCachedBlock> {
+public class LruCachedBlock implements HeapSizeEstimater, Comparable<LruCachedBlock> {
 
   public final static long PER_BLOCK_OVERHEAD = ClassSize.align(
     ClassSize.OBJECT + (3 * ClassSize.REFERENCE) + (3 * Bytes.SIZEOF_LONG) +

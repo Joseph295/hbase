@@ -18,7 +18,7 @@
 package org.apache.hadoop.hbase.io.hfile;
 
 import org.apache.yetus.audience.InterfaceAudience;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.ClassSize;
 
@@ -26,7 +26,7 @@ import org.apache.hadoop.hbase.util.ClassSize;
  * Cache Key for use with implementations of {@link BlockCache}
  */
 @InterfaceAudience.Private
-public class BlockCacheKey implements HeapSize, java.io.Serializable {
+public class BlockCacheKey implements HeapSizeEstimater, java.io.Serializable {
   private static final long serialVersionUID = -5199992013113130534L;
   private final String hfileName;
   private final long offset;

@@ -56,7 +56,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.io.ByteBuffAllocator;
 import org.apache.hadoop.hbase.io.ByteBuffAllocator.Recycler;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.io.hfile.BlockCache;
 import org.apache.hadoop.hbase.io.hfile.BlockCacheKey;
 import org.apache.hadoop.hbase.io.hfile.BlockCacheUtil;
@@ -70,7 +70,7 @@ import org.apache.hadoop.hbase.nio.ByteBuff;
 import org.apache.hadoop.hbase.nio.RefCnt;
 import org.apache.hadoop.hbase.protobuf.ProtobufMagic;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
-import org.apache.hadoop.hbase.util.HasThread;
+import org.apache.hadoop.hbase.util.ThreadWrapper;
 import org.apache.hadoop.hbase.util.IdReadWriteLock;
 import org.apache.hadoop.hbase.util.IdReadWriteLockStrongRef;
 import org.apache.hadoop.hbase.util.IdReadWriteLockWithObjectPool;
@@ -104,7 +104,7 @@ import org.apache.hadoop.hbase.shaded.protobuf.generated.BucketCacheProtos;
  * blocks) to enlarge cache space via a victim cache.
  */
 @InterfaceAudience.Private
-public class BucketCache implements BlockCache, HeapSize {
+public class BucketCache implements BlockCache, HeapSizeEstimater {
   private static final Logger LOG = LoggerFactory.getLogger(BucketCache.class);
 
   /** Priority buckets config */
@@ -156,7 +156,7 @@ public class BucketCache implements BlockCache, HeapSize {
   private volatile boolean cacheEnabled;
 
   /**
-   * A list of writer queues.  We have a queue per {@link WriterThread} we have running.
+   * A list of writer queues.  We have a queue per {@link WriterThreadWrapper} we have running.
    * In other words, the work adding blocks to the BucketCache is divided up amongst the
    * running WriterThreads.  Its done by taking hash of the cache key modulo queue count.
    * WriterThread when it runs takes whatever has been recently added and 'drains' the entries
@@ -165,7 +165,7 @@ public class BucketCache implements BlockCache, HeapSize {
   @VisibleForTesting
   transient final ArrayList<BlockingQueue<RAMQueueEntry>> writerQueues = new ArrayList<>();
   @VisibleForTesting
-  transient final WriterThread[] writerThreads;
+  transient final WriterThreadWrapper[] writerThreads;
 
   /** Volatile boolean to track if free space is in process or not */
   private volatile boolean freeInProgress = false;
@@ -270,7 +270,7 @@ public class BucketCache implements BlockCache, HeapSize {
     }
     this.algorithm = conf.get(FILE_VERIFY_ALGORITHM, DEFAULT_FILE_VERIFY_ALGORITHM);
     this.ioEngine = getIOEngineFromName(ioEngineName, capacity, persistencePath);
-    this.writerThreads = new WriterThread[writerThreadNum];
+    this.writerThreads = new WriterThreadWrapper[writerThreadNum];
     long blockNumCapacity = capacity / blockSize;
     if (blockNumCapacity >= Integer.MAX_VALUE) {
       // Enough for about 32TB of cache!
@@ -315,7 +315,7 @@ public class BucketCache implements BlockCache, HeapSize {
     final String threadName = Thread.currentThread().getName();
     this.cacheEnabled = true;
     for (int i = 0; i < writerThreads.length; ++i) {
-      writerThreads[i] = new WriterThread(writerQueues.get(i));
+      writerThreads[i] = new WriterThreadWrapper(writerQueues.get(i));
       writerThreads[i].setName(threadName + "-BucketCacheWriter-" + i);
       writerThreads[i].setDaemon(true);
     }
@@ -351,7 +351,7 @@ public class BucketCache implements BlockCache, HeapSize {
    */
   @VisibleForTesting
   protected void startWriterThreads() {
-    for (WriterThread thread : writerThreads) {
+    for (WriterThreadWrapper thread : writerThreads) {
       thread.start();
     }
   }
@@ -874,11 +874,11 @@ public class BucketCache implements BlockCache, HeapSize {
 
   // This handles flushing the RAM cache to IOEngine.
   @VisibleForTesting
-  class WriterThread extends HasThread {
+  class WriterThreadWrapper extends ThreadWrapper {
     private final BlockingQueue<RAMQueueEntry> inputQueue;
     private volatile boolean writerEnabled = true;
 
-    WriterThread(BlockingQueue<RAMQueueEntry> queue) {
+    WriterThreadWrapper(BlockingQueue<RAMQueueEntry> queue) {
       super("BucketCacheWriterThread");
       this.inputQueue = queue;
     }
@@ -1423,7 +1423,7 @@ public class BucketCache implements BlockCache, HeapSize {
    * @throws InterruptedException
    */
   void stopWriterThreads() throws InterruptedException {
-    for (WriterThread writerThread : writerThreads) {
+    for (WriterThreadWrapper writerThread : writerThreads) {
       writerThread.disableWriter();
       writerThread.interrupt();
       writerThread.join();

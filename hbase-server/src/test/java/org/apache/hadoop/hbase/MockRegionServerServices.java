@@ -42,7 +42,7 @@ import org.apache.hadoop.hbase.ipc.RpcServerInterface;
 import org.apache.hadoop.hbase.mob.MobFileCache;
 import org.apache.hadoop.hbase.quotas.RegionServerRpcQuotaManager;
 import org.apache.hadoop.hbase.quotas.RegionServerSpaceQuotaManager;
-import org.apache.hadoop.hbase.quotas.RegionSizeStore;
+import org.apache.hadoop.hbase.quotas.RegionSizeEstimaterStore;
 import org.apache.hadoop.hbase.regionserver.FlushRequester;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HeapMemoryManager;
@@ -329,7 +329,7 @@ public class MockRegionServerServices implements RegionServerServices {
   }
 
   @Override
-  public boolean reportRegionSizesForQuotas(RegionSizeStore sizeStore) {
+  public boolean reportRegionSizesForQuotas(RegionSizeEstimaterStore sizeStore) {
     return true;
   }
 

@@ -35,7 +35,7 @@ import org.apache.hadoop.hbase.io.hfile.Cacheable;
 import org.apache.hadoop.hbase.io.hfile.HFileBlock;
 import org.apache.hadoop.hbase.io.hfile.HFileContext;
 import org.apache.hadoop.hbase.io.hfile.HFileContextBuilder;
-import org.apache.hadoop.hbase.io.hfile.bucket.BucketCache.WriterThread;
+import org.apache.hadoop.hbase.io.hfile.bucket.BucketCache.WriterThreadWrapper;
 import org.apache.hadoop.hbase.nio.ByteBuff;
 import org.apache.hadoop.hbase.testclassification.IOTests;
 import org.apache.hadoop.hbase.testclassification.SmallTests;
@@ -80,7 +80,7 @@ public class TestBucketCacheRefCnt {
 
   private void disableWriter() {
     if (cache != null) {
-      for (WriterThread wt : cache.writerThreads) {
+      for (WriterThreadWrapper wt : cache.writerThreads) {
         wt.disableWriter();
         wt.interrupt();
       }

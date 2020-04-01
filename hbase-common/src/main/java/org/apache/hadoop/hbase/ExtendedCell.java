@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.util.ByteBufferUtils;
 import org.apache.yetus.audience.InterfaceAudience;
 
@@ -30,7 +30,7 @@ import org.apache.yetus.audience.InterfaceAudience;
  * must implement this.
  */
 @InterfaceAudience.Private
-public interface ExtendedCell extends RawCell, HeapSize {
+public interface ExtendedCell extends RawCell, HeapSizeEstimater {
   int CELL_NOT_BASED_ON_CHUNK = -1;
 
   /**

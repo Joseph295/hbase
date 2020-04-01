@@ -34,8 +34,8 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.NoTagsByteBufferKeyValue;
 import org.apache.hadoop.hbase.PrivateCellUtil;
-import org.apache.hadoop.hbase.SizeCachedKeyValue;
-import org.apache.hadoop.hbase.SizeCachedNoTagsKeyValue;
+import org.apache.hadoop.hbase.SizeEstimaterCachedKeyValue;
+import org.apache.hadoop.hbase.SizeEstimaterCachedNoTagsKeyValue;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.io.encoding.DataBlockEncoder;
 import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
@@ -789,10 +789,10 @@ public abstract class HFileReaderImpl implements HFile.Reader, Configurable {
         // TODO : reduce the varieties of KV here. Check if based on a boolean
         // we can handle the 'no tags' case.
         if (currTagsLen > 0) {
-          ret = new SizeCachedKeyValue(blockBuffer.array(),
+          ret = new SizeEstimaterCachedKeyValue(blockBuffer.array(),
               blockBuffer.arrayOffset() + blockBuffer.position(), cellBufSize, seqId);
         } else {
-          ret = new SizeCachedNoTagsKeyValue(blockBuffer.array(),
+          ret = new SizeEstimaterCachedNoTagsKeyValue(blockBuffer.array(),
               blockBuffer.arrayOffset() + blockBuffer.position(), cellBufSize, seqId);
         }
       } else {
@@ -802,10 +802,10 @@ public abstract class HFileReaderImpl implements HFile.Reader, Configurable {
               : new NoTagsByteBufferKeyValue(buf, buf.position(), cellBufSize, seqId);
         } else {
           if (currTagsLen > 0) {
-            ret = new SizeCachedKeyValue(buf.array(), buf.arrayOffset() + buf.position(),
+            ret = new SizeEstimaterCachedKeyValue(buf.array(), buf.arrayOffset() + buf.position(),
                 cellBufSize, seqId);
           } else {
-            ret = new SizeCachedNoTagsKeyValue(buf.array(), buf.arrayOffset() + buf.position(),
+            ret = new SizeEstimaterCachedNoTagsKeyValue(buf.array(), buf.arrayOffset() + buf.position(),
                 cellBufSize, seqId);
           }
         }

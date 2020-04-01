@@ -90,7 +90,7 @@ public class TestRegionSizeReportingChore {
     RegionInfo infoC = RegionInfoBuilder.newBuilder(TableName.valueOf("T1"))
         .setStartKey(Bytes.toBytes("c")).setEndKey(Bytes.toBytes("d")).build();
 
-    RegionSizeStore store = new RegionSizeStoreImpl();
+    RegionSizeEstimaterStore store = new RegionSizeEstimaterStoreImpl();
     store.put(infoA, 1024L);
     store.put(infoB, 1024L);
     store.put(infoC, 1024L);

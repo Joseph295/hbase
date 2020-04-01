@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 /**
  * A chore which computes the size of each {@link HRegion} on the FileSystem hosted by the given
  * {@link HRegionServer}. The results of this computation are stored in the
- * {@link RegionServerSpaceQuotaManager}'s {@link RegionSizeStore} object.
+ * {@link RegionServerSpaceQuotaManager}'s {@link RegionSizeEstimaterStore} object.
  */
 @InterfaceAudience.Private
 public class FileSystemUtilizationChore extends ScheduledChore {
@@ -67,18 +67,18 @@ public class FileSystemUtilizationChore extends ScheduledChore {
 
   @Override
   protected void chore() {
-    final RegionSizeStore regionSizeStore = getRegionSizeStore();
+    final RegionSizeEstimaterStore regionSizeStore = getRegionSizeStore();
     final Set<Region> onlineRegions = new HashSet<>(rs.getRegions());
     // Process the regions from the last run if we have any. If we are somehow having difficulty
     // processing the Regions, we want to avoid creating a backlog in memory of Region objs.
     Iterator<Region> oldRegionsToProcess = getLeftoverRegions();
-    final Iterator<Region> iterator;
+    final Iterator<Region> regionIterator;
     final boolean processingLeftovers;
     if (oldRegionsToProcess == null) {
-      iterator = onlineRegions.iterator();
+      regionIterator = onlineRegions.iterator();
       processingLeftovers = false;
     } else {
-      iterator = oldRegionsToProcess;
+      regionIterator = oldRegionsToProcess;
       processingLeftovers = true;
     }
     // Reset the leftoverRegions and let the loop re-assign if necessary.
@@ -88,18 +88,18 @@ public class FileSystemUtilizationChore extends ScheduledChore {
     long skippedSplitParents = 0L;
     long skippedRegionReplicas = 0L;
     final long start = EnvironmentEdgeManager.currentTime();
-    while (iterator.hasNext()) {
+    while (regionIterator.hasNext()) {
       // Make sure this chore doesn't hog the thread.
       long timeRunning = EnvironmentEdgeManager.currentTime() - start;
       if (timeRunning > maxIterationMillis) {
         LOG.debug("Preempting execution of FileSystemUtilizationChore because it exceeds the"
             + " maximum iteration configuration value. Will process remaining Regions"
             + " on a subsequent invocation.");
-        setLeftoverRegions(iterator);
+        setLeftoverRegions(regionIterator);
         break;
       }
 
-      final Region region = iterator.next();
+      final Region region = regionIterator.next();
       // If we're processing leftover regions, the region may no-longer be online.
       // If so, we can skip it.
       if (processingLeftovers && !onlineRegions.contains(region)) {
@@ -162,7 +162,7 @@ public class FileSystemUtilizationChore extends ScheduledChore {
   }
 
   // VisibleForTesting
-  RegionSizeStore getRegionSizeStore() {
+  RegionSizeEstimaterStore getRegionSizeStore() {
     return rs.getRegionServerSpaceQuotaManager().getRegionSizeStore();
   }
 

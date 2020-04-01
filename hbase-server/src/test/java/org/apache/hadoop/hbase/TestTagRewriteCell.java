@@ -19,7 +19,7 @@ package org.apache.hadoop.hbase;
 
 import static org.junit.Assert.assertTrue;
 
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.testclassification.SmallTests;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.ClassRule;
@@ -47,7 +47,7 @@ public class TestTagRewriteCell {
     Cell trCell = PrivateCellUtil.createCell(originalCell, new byte[fakeTagArrayLength]);
 
     // Get the heapSize before the internal tags array in trCell are nuked
-    long trCellHeapSize = ((HeapSize)trCell).heapSize();
+    long trCellHeapSize = ((HeapSizeEstimater)trCell).heapSize();
 
     // Make another TagRewriteCell with the original TagRewriteCell
     // This happens on systems with more than one RegionObserver/Coproc loaded (such as
@@ -56,8 +56,8 @@ public class TestTagRewriteCell {
 
     assertTrue("TagRewriteCell containing a TagRewriteCell's heapsize should be " +
             "larger than a single TagRewriteCell's heapsize",
-        trCellHeapSize < ((HeapSize)trCell2).heapSize());
+        trCellHeapSize < ((HeapSizeEstimater)trCell2).heapSize());
     assertTrue("TagRewriteCell should have had nulled out tags array",
-        ((HeapSize)trCell).heapSize() < trCellHeapSize);
+        ((HeapSizeEstimater)trCell).heapSize() < trCellHeapSize);
   }
 }

@@ -43,7 +43,7 @@ import org.apache.hadoop.hbase.KeyValue.KeyOnlyKeyValue;
 import org.apache.yetus.audience.InterfaceAudience;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
 import org.apache.hadoop.hbase.io.hfile.HFile.CachingBlockReader;
 import org.apache.hadoop.hbase.nio.ByteBuff;
@@ -512,7 +512,7 @@ public class HFileBlockIndex {
    * This allows us to do binary search for the entry corresponding to the
    * given key without having to deserialize the block.
    */
-  static abstract class BlockIndexReader implements HeapSize {
+  static abstract class BlockIndexReader implements HeapSizeEstimater {
 
     protected long[] blockOffsets;
     protected int[] blockDataSizes;

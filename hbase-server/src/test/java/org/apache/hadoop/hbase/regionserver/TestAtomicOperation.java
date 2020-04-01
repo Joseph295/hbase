@@ -66,7 +66,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
 import org.apache.hadoop.hbase.filter.BinaryComparator;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.io.hfile.BlockCache;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.testclassification.LargeTests;
@@ -644,7 +644,7 @@ public class TestAtomicOperation {
   @Test
   public void testPutAndCheckAndPutInParallel() throws Exception {
     Configuration conf = TEST_UTIL.getConfiguration();
-    conf.setClass(HConstants.REGION_IMPL, MockHRegion.class, HeapSize.class);
+    conf.setClass(HConstants.REGION_IMPL, MockHRegion.class, HeapSizeEstimater.class);
     TableDescriptorBuilder tableDescriptorBuilder =
       TableDescriptorBuilder.newBuilder(TableName.valueOf(name.getMethodName()));
     ColumnFamilyDescriptor columnFamilyDescriptor =

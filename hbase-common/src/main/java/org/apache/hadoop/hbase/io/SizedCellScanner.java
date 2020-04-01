@@ -27,4 +27,4 @@ import org.apache.yetus.audience.InterfaceStability;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public interface SizedCellScanner extends CellScanner, HeapSize {}
+public interface SizedCellScanner extends CellScanner, HeapSizeEstimater {}

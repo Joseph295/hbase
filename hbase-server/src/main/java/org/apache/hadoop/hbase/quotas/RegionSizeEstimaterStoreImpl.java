@@ -29,31 +29,31 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@link RegionSizeStore} implementation backed by a ConcurrentHashMap. We expected similar
+ * A {@link RegionSizeEstimaterStore} implementation backed by a ConcurrentHashMap. We expected similar
  * amounts of reads and writes to the "store", so using a RWLock is not going to provide any
  * exceptional gains.
  */
 @InterfaceAudience.Private
-public class RegionSizeStoreImpl implements RegionSizeStore {
-  private static final Logger LOG = LoggerFactory.getLogger(RegionSizeStoreImpl.class);
+public class RegionSizeEstimaterStoreImpl implements RegionSizeEstimaterStore {
+  private static final Logger LOG = LoggerFactory.getLogger(RegionSizeEstimaterStoreImpl.class);
   private static final long sizeOfEntry = ClassSize.align(
       ClassSize.CONCURRENT_HASHMAP_ENTRY
       + ClassSize.OBJECT + Bytes.SIZEOF_LONG
       // TODO Have RegionInfo implement HeapSize. 100B is an approximation based on a heapdump.
       + ClassSize.OBJECT + 100);
-  private final ConcurrentHashMap<RegionInfo,RegionSize> store;
+  private final ConcurrentHashMap<RegionInfo, RegionSizeEstimater> store;
 
-  public RegionSizeStoreImpl() {
+  public RegionSizeEstimaterStoreImpl() {
     store = new ConcurrentHashMap<>();
   }
 
   @Override
-  public Iterator<Entry<RegionInfo,RegionSize>> iterator() {
+  public Iterator<Entry<RegionInfo, RegionSizeEstimater>> iterator() {
     return store.entrySet().iterator();
   }
 
   @Override
-  public RegionSize getRegionSize(RegionInfo regionInfo) {
+  public RegionSizeEstimater getRegionSize(RegionInfo regionInfo) {
     return store.get(regionInfo);
   }
 
@@ -64,7 +64,7 @@ public class RegionSizeStoreImpl implements RegionSizeStore {
     }
     // Atomic. Either sets the new size for the first time, or replaces the existing value.
     store.compute(regionInfo,
-      (key,value) -> value == null ? new RegionSizeImpl(size) : value.setSize(size));
+      (key,value) -> value == null ? new RegionSizeEstimaterImpl(size) : value.setSize(size));
   }
 
   @Override
@@ -74,11 +74,11 @@ public class RegionSizeStoreImpl implements RegionSizeStore {
     }
     // Atomic. Recomputes the stored value with the delta if there is one, otherwise use the delta.
     store.compute(regionInfo,
-      (key,value) -> value == null ? new RegionSizeImpl(delta) : value.incrementSize(delta));
+      (key,value) -> value == null ? new RegionSizeEstimaterImpl(delta) : value.incrementSize(delta));
   }
 
   @Override
-  public RegionSize remove(RegionInfo regionInfo) {
+  public RegionSizeEstimater remove(RegionInfo regionInfo) {
     return store.remove(regionInfo);
   }
 

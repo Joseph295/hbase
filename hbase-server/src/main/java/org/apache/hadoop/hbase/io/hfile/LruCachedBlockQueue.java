@@ -21,7 +21,7 @@ package org.apache.hadoop.hbase.io.hfile;
 import org.apache.hbase.thirdparty.com.google.common.collect.MinMaxPriorityQueue;
 
 import org.apache.yetus.audience.InterfaceAudience;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 
 /**
  * A memory-bound queue that will grow until an element brings
@@ -33,11 +33,11 @@ import org.apache.hadoop.hbase.io.HeapSize;
  * maxSize as possible.  Default behavior is to grow just above rather than
  * just below specified max.
  *
- * <p>Object used in this queue must implement {@link HeapSize} as well as
+ * <p>Object used in this queue must implement {@link HeapSizeEstimater} as well as
  * {@link Comparable}.
  */
 @InterfaceAudience.Private
-public class LruCachedBlockQueue implements HeapSize {
+public class LruCachedBlockQueue implements HeapSizeEstimater {
 
   private MinMaxPriorityQueue<LruCachedBlock> queue;
 

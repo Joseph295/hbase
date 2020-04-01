@@ -55,8 +55,7 @@ import org.apache.hbase.thirdparty.com.google.common.base.Preconditions;
 import org.apache.hbase.thirdparty.org.apache.commons.collections4.CollectionUtils;
 
 /**
- * Scanner scans both the memstore and the Store. Coalesce KeyValue stream into List&lt;KeyValue&gt;
- * for a single row.
+ * Scanner scans both the memstore and the Store. Merge KeyValue stream into List<KeyValue> for a single row.
  * <p>
  * The implementation is not thread safe. So there will be no race between next and close. The only
  * exception is updateReaders, it will be called in the memstore flush thread to indicate that there

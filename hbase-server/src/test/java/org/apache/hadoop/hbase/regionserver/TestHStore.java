@@ -89,7 +89,7 @@ import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileContext;
 import org.apache.hadoop.hbase.io.hfile.HFileContextBuilder;
 import org.apache.hadoop.hbase.monitoring.MonitoredTask;
-import org.apache.hadoop.hbase.quotas.RegionSizeStoreImpl;
+import org.apache.hadoop.hbase.quotas.RegionSizeEstimaterStoreImpl;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionConfiguration;
 import org.apache.hadoop.hbase.regionserver.compactions.DefaultCompactor;
 import org.apache.hadoop.hbase.regionserver.querymatcher.ScanQueryMatcher;
@@ -1670,7 +1670,7 @@ public class TestHStore {
     final TableName tn = TableName.valueOf(name.getMethodName());
     init(name.getMethodName());
 
-    RegionSizeStoreImpl sizeStore = new RegionSizeStoreImpl();
+    RegionSizeEstimaterStoreImpl sizeStore = new RegionSizeEstimaterStoreImpl();
 
     HStoreFile sf1 = mockStoreFileWithLength(1024L);
     HStoreFile sf2 = mockStoreFileWithLength(2048L);

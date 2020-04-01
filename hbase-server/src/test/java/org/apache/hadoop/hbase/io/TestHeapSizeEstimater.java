@@ -80,13 +80,13 @@ import org.slf4j.LoggerFactory;
  * ClassSize.
  */
 @Category({IOTests.class, SmallTests.class})
-public class TestHeapSize  {
+public class TestHeapSizeEstimater {
 
   @ClassRule
   public static final HBaseClassTestRule CLASS_RULE =
-      HBaseClassTestRule.forClass(TestHeapSize.class);
+      HBaseClassTestRule.forClass(TestHeapSizeEstimater.class);
 
-  private static final Logger LOG = LoggerFactory.getLogger(TestHeapSize.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestHeapSizeEstimater.class);
   // List of classes implementing HeapSize
   // BatchOperation, BatchUpdate, BlockIndex, Entry, Entry<K,V>, HStoreKey
   // KeyValue, LruBlockCache, Put, WALKey

@@ -16,14 +16,14 @@
  */
 package org.apache.hadoop.hbase.quotas;
 
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.yetus.audience.InterfaceAudience;
 
 /**
  * Interface that encapsulates optionally sending a Region's size to the master.
  */
 @InterfaceAudience.Private
-public interface RegionSize extends HeapSize {
+public interface RegionSizeEstimater extends HeapSizeEstimater {
 
   /**
    * Updates the size of the Region.
@@ -31,7 +31,7 @@ public interface RegionSize extends HeapSize {
    * @param newSize the new size of the Region
    * @return {@code this}
    */
-  RegionSize setSize(long newSize);
+  RegionSizeEstimater setSize(long newSize);
 
   /**
    * Atomically adds the provided {@code delta} to the region size.
@@ -39,7 +39,7 @@ public interface RegionSize extends HeapSize {
    * @param delta The change in size in bytes of the region.
    * @return {@code this}
    */
-  RegionSize incrementSize(long delta);
+  RegionSizeEstimater incrementSize(long delta);
 
   /**
    * Returns the size of the region.

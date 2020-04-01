@@ -46,7 +46,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion.FlushResult;
 import org.apache.hadoop.hbase.trace.TraceUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
-import org.apache.hadoop.hbase.util.HasThread;
+import org.apache.hadoop.hbase.util.ThreadWrapper;
 import org.apache.hadoop.hbase.util.ServerRegionReplicaUtil;
 import org.apache.hadoop.hbase.util.Threads;
 import org.apache.hadoop.ipc.RemoteException;
@@ -321,7 +321,7 @@ class MemStoreFlusher implements FlushRequester {
     return r == null? 0: r.getMemStoreDataSize();
   }
 
-  private class FlushHandler extends HasThread {
+  private class FlushHandler extends ThreadWrapper {
 
     private FlushHandler(String name) {
       super(name);

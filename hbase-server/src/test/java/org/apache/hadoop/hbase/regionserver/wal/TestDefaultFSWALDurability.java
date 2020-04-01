@@ -29,42 +29,42 @@ import org.junit.ClassRule;
 import org.junit.experimental.categories.Category;
 
 @Category({ RegionServerServices.class, MediumTests.class })
-public class TestFSHLogDurability extends WALDurabilityTestBase<CustomFSHLog> {
+public class TestDefaultFSWALDurability extends WALDurabilityTestBase<CustomDefaultFSWAL> {
 
   @ClassRule
   public static final HBaseClassTestRule CLASS_RULE =
-    HBaseClassTestRule.forClass(TestFSHLogDurability.class);
+    HBaseClassTestRule.forClass(TestDefaultFSWALDurability.class);
 
   @Override
-  protected CustomFSHLog getWAL(FileSystem fs, Path root, String logDir, Configuration conf)
+  protected CustomDefaultFSWAL getWAL(FileSystem fs, Path root, String logDir, Configuration conf)
     throws IOException {
-    CustomFSHLog wal = new CustomFSHLog(fs, root, logDir, conf);
+    CustomDefaultFSWAL wal = new CustomDefaultFSWAL(fs, root, logDir, conf);
     wal.init();
     return wal;
   }
 
   @Override
-  protected void resetSyncFlag(CustomFSHLog wal) {
+  protected void resetSyncFlag(CustomDefaultFSWAL wal) {
     wal.resetSyncFlag();
   }
 
   @Override
-  protected Boolean getSyncFlag(CustomFSHLog wal) {
+  protected Boolean getSyncFlag(CustomDefaultFSWAL wal) {
     return wal.getSyncFlag();
   }
 
   @Override
-  protected Boolean getWriterSyncFlag(CustomFSHLog wal) {
+  protected Boolean getWriterSyncFlag(CustomDefaultFSWAL wal) {
     return wal.getWriterSyncFlag();
   }
 }
 
-class CustomFSHLog extends FSHLog {
+class CustomDefaultFSWAL extends DefaultFSWAL {
   private Boolean syncFlag;
 
   private Boolean writerSyncFlag;
 
-  public CustomFSHLog(FileSystem fs, Path root, String logDir, Configuration conf)
+  public CustomDefaultFSWAL(FileSystem fs, Path root, String logDir, Configuration conf)
     throws IOException {
     super(fs, root, logDir, conf);
   }

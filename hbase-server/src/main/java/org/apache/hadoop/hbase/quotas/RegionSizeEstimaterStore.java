@@ -19,14 +19,14 @@ package org.apache.hadoop.hbase.quotas;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.hbase.client.RegionInfo;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.yetus.audience.InterfaceAudience;
 
 /**
  * An interface for concurrently storing and updating the size of a Region.
  */
 @InterfaceAudience.Private
-public interface RegionSizeStore extends Iterable<Entry<RegionInfo,RegionSize>>, HeapSize {
+public interface RegionSizeEstimaterStore extends Iterable<Entry<RegionInfo, RegionSizeEstimater>>, HeapSizeEstimater {
 
   /**
    * Returns the size for the give region if one exists. If no size exists, {@code null} is
@@ -35,7 +35,7 @@ public interface RegionSizeStore extends Iterable<Entry<RegionInfo,RegionSize>>,
    * @param regionInfo The region whose size is being fetched.
    * @return The size in bytes of the region or null if no size is stored.
    */
-  RegionSize getRegionSize(RegionInfo regionInfo);
+  RegionSizeEstimater getRegionSize(RegionInfo regionInfo);
 
   /**
    * Atomically sets the given {@code size} for a region.
@@ -59,7 +59,7 @@ public interface RegionSizeStore extends Iterable<Entry<RegionInfo,RegionSize>>,
    * @param regionInfo The key to remove from the store
    * @return The value removed from the store if one exists, otherwise null.
    */
-  RegionSize remove(RegionInfo regionInfo);
+  RegionSizeEstimater remove(RegionInfo regionInfo);
 
   /**
    * Returns the number of entries in the store.

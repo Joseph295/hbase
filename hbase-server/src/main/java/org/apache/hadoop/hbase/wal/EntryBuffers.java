@@ -26,7 +26,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.ClassSize;
 import org.apache.hadoop.hbase.wal.WALSplitter.PipelineController;
@@ -140,7 +140,7 @@ class EntryBuffers {
    * share a single byte array instance for the table and region name.
    * Also tracks memory usage of the accumulated edits.
    */
-  static class RegionEntryBuffer implements HeapSize {
+  static class RegionEntryBuffer implements HeapSizeEstimater {
     private long heapInBuffer = 0;
     final List<WAL.Entry> entryBuffer;
     final TableName tableName;

@@ -129,8 +129,8 @@ import org.apache.hadoop.hbase.quotas.FileSystemUtilizationChore;
 import org.apache.hadoop.hbase.quotas.QuotaUtil;
 import org.apache.hadoop.hbase.quotas.RegionServerRpcQuotaManager;
 import org.apache.hadoop.hbase.quotas.RegionServerSpaceQuotaManager;
-import org.apache.hadoop.hbase.quotas.RegionSize;
-import org.apache.hadoop.hbase.quotas.RegionSizeStore;
+import org.apache.hadoop.hbase.quotas.RegionSizeEstimater;
+import org.apache.hadoop.hbase.quotas.RegionSizeEstimaterStore;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionConfiguration;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionLifeCycleTracker;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionProgress;
@@ -159,7 +159,7 @@ import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 import org.apache.hadoop.hbase.util.FSTableDescriptors;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.util.FutureUtils;
-import org.apache.hadoop.hbase.util.HasThread;
+import org.apache.hadoop.hbase.util.ThreadWrapper;
 import org.apache.hadoop.hbase.util.JvmPauseMonitor;
 import org.apache.hadoop.hbase.util.NettyEventLoopGroupConfig;
 import org.apache.hadoop.hbase.util.Pair;
@@ -240,7 +240,7 @@ import org.apache.hadoop.hbase.shaded.protobuf.generated.RegionServerStatusProto
  */
 @InterfaceAudience.LimitedPrivate(HBaseInterfaceAudience.TOOLS)
 @SuppressWarnings({ "deprecation"})
-public class HRegionServer extends HasThread implements
+public class HRegionServer extends ThreadWrapper implements
     RegionServerServices, LastSequenceId, ConfigurationObserver {
   private static final Logger LOG = LoggerFactory.getLogger(HRegionServer.class);
 
@@ -1225,7 +1225,7 @@ public class HRegionServer extends HasThread implements
    * @param regionSizeStore The store containing region sizes
    * @return false if FileSystemUtilizationChore should pause reporting to master. true otherwise
    */
-  public boolean reportRegionSizesForQuotas(RegionSizeStore regionSizeStore) {
+  public boolean reportRegionSizesForQuotas(RegionSizeEstimaterStore regionSizeStore) {
     RegionServerStatusService.BlockingInterface rss = rssStub;
     if (rss == null) {
       // the current server could be stopping.
@@ -1269,7 +1269,7 @@ public class HRegionServer extends HasThread implements
    * @param regionSizeStore The store containing region sizes
    */
   private void buildReportAndSend(RegionServerStatusService.BlockingInterface rss,
-      RegionSizeStore regionSizeStore) throws ServiceException {
+      RegionSizeEstimaterStore regionSizeStore) throws ServiceException {
     RegionSpaceUseReportRequest request =
         buildRegionSpaceUseReportRequest(Objects.requireNonNull(regionSizeStore));
     rss.reportRegionSpaceUse(null, request);
@@ -1285,9 +1285,9 @@ public class HRegionServer extends HasThread implements
    * @param regionSizes The size in bytes of regions
    * @return The corresponding protocol buffer message.
    */
-  RegionSpaceUseReportRequest buildRegionSpaceUseReportRequest(RegionSizeStore regionSizes) {
+  RegionSpaceUseReportRequest buildRegionSpaceUseReportRequest(RegionSizeEstimaterStore regionSizes) {
     RegionSpaceUseReportRequest.Builder request = RegionSpaceUseReportRequest.newBuilder();
-    for (Entry<RegionInfo, RegionSize> entry : regionSizes) {
+    for (Entry<RegionInfo, RegionSizeEstimater> entry : regionSizes) {
       request.addSpaceUse(convertRegionSize(entry.getKey(), entry.getValue().getSize()));
     }
     return request.build();

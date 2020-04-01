@@ -1070,7 +1070,7 @@ public abstract class AbstractTestWALReplay {
     testNameConflictWhenSplit(false);
   }
 
-  static class MockWAL extends FSHLog {
+  static class MockWAL extends DefaultFSWAL {
     boolean doCompleteCacheFlush = false;
 
     public MockWAL(FileSystem fs, Path rootDir, String logName, Configuration conf)

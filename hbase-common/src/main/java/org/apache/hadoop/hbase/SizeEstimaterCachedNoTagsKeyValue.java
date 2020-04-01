@@ -30,9 +30,9 @@ import org.apache.yetus.audience.InterfaceAudience;
  * See https://issues.apache.org/jira/browse/HBASE-13448
  */
 @InterfaceAudience.Private
-public class SizeCachedNoTagsKeyValue extends SizeCachedKeyValue {
+public class SizeEstimaterCachedNoTagsKeyValue extends SizeEstimaterCachedKeyValue {
 
-  public SizeCachedNoTagsKeyValue(byte[] bytes, int offset, int length, long seqId) {
+  public SizeEstimaterCachedNoTagsKeyValue(byte[] bytes, int offset, int length, long seqId) {
     super(bytes, offset, length, seqId);
   }
 

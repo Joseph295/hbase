@@ -41,7 +41,7 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.wal.DamagedWALException;
-import org.apache.hadoop.hbase.regionserver.wal.FSHLog;
+import org.apache.hadoop.hbase.regionserver.wal.DefaultFSWAL;
 import org.apache.hadoop.hbase.regionserver.wal.WALActionsListener;
 import org.apache.hadoop.hbase.testclassification.MediumTests;
 import org.apache.hadoop.hbase.testclassification.RegionServerTests;
@@ -115,7 +115,7 @@ public class TestWALLockup {
   }
 
   // A WAL that we can have throw exceptions when a flag is set.
-  private static final class DodgyFSLog extends FSHLog {
+  private static final class DodgyFSLog extends DefaultFSWAL {
     // Set this when want the WAL to start throwing exceptions.
     volatile boolean throwException = false;
 
@@ -318,7 +318,7 @@ public class TestWALLockup {
     throws IOException, InterruptedException {
 
     // A WAL that we can have throw exceptions and slow FSHLog.replaceWriter down
-    class DodgyFSLog extends FSHLog {
+    class DodgyFSLog extends DefaultFSWAL {
 
       private volatile boolean zigZagCreated = false;
 

@@ -37,7 +37,7 @@ import org.apache.hadoop.hbase.ipc.RpcServerInterface;
 import org.apache.hadoop.hbase.mob.MobFileCache;
 import org.apache.hadoop.hbase.quotas.RegionServerRpcQuotaManager;
 import org.apache.hadoop.hbase.quotas.RegionServerSpaceQuotaManager;
-import org.apache.hadoop.hbase.quotas.RegionSizeStore;
+import org.apache.hadoop.hbase.quotas.RegionSizeEstimaterStore;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequester;
 import org.apache.hadoop.hbase.regionserver.throttle.ThroughputController;
 import org.apache.hadoop.hbase.security.access.AccessChecker;
@@ -269,7 +269,7 @@ public interface RegionServerServices extends Server, MutableOnlineRegions, Favo
    * @param sizeStore The sizes for Regions locally hosted.
    * @return {@code false} if reporting should be temporarily paused, {@code true} otherwise.
    */
-  boolean reportRegionSizesForQuotas(RegionSizeStore sizeStore);
+  boolean reportRegionSizesForQuotas(RegionSizeEstimaterStore sizeStore);
 
   /**
    * Reports a collection of files, and their sizes, that belonged to the given {@code table} were

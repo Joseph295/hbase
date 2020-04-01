@@ -66,7 +66,7 @@ public class TestFileSystemUtilizationChore {
     final FileSystemUtilizationChore chore = new FileSystemUtilizationChore(rs);
     doAnswer(new ExpectedRegionSizeSummationAnswer(sum(regionSizes)))
         .when(rs)
-        .reportRegionSizesForQuotas(any(RegionSizeStore.class));
+        .reportRegionSizesForQuotas(any(RegionSizeEstimaterStore.class));
 
     final Region region = mockRegionWithSize(regionSizes);
     Mockito.doReturn(Arrays.asList(region)).when(rs).getRegions();
@@ -82,7 +82,7 @@ public class TestFileSystemUtilizationChore {
     final FileSystemUtilizationChore chore = new FileSystemUtilizationChore(rs);
     doAnswer(new ExpectedRegionSizeSummationAnswer(sum(regionSizes)))
         .when(rs)
-        .reportRegionSizesForQuotas(any(RegionSizeStore.class));
+        .reportRegionSizesForQuotas(any(RegionSizeEstimaterStore.class));
 
     final Region region = mockRegionWithSize(regionSizes);
     Mockito.doReturn(Arrays.asList(region)).when(rs).getRegions();
@@ -105,7 +105,7 @@ public class TestFileSystemUtilizationChore {
     final FileSystemUtilizationChore chore = new FileSystemUtilizationChore(rs);
     doAnswer(new ExpectedRegionSizeSummationAnswer(sum(Arrays.asList(r1Sum, r2Sum, r3Sum))))
         .when(rs)
-        .reportRegionSizesForQuotas(any(RegionSizeStore.class));
+        .reportRegionSizesForQuotas(any(RegionSizeEstimaterStore.class));
 
     final Region r1 = mockRegionWithSize(r1Sizes);
     final Region r2 = mockRegionWithSize(r2Sizes);
@@ -169,7 +169,7 @@ public class TestFileSystemUtilizationChore {
     };
     doAnswer(new ExpectedRegionSizeSummationAnswer(sum(Arrays.asList(leftover1Sum, leftover2Sum))))
         .when(rs)
-        .reportRegionSizesForQuotas(any(RegionSizeStore.class));
+        .reportRegionSizesForQuotas(any(RegionSizeEstimaterStore.class));
 
     // We shouldn't compute all of these region sizes, just the leftovers
     final Region r1 = mockRegionWithSize(Arrays.asList(1024L, 2048L));
@@ -200,7 +200,7 @@ public class TestFileSystemUtilizationChore {
     };
     doAnswer(new ExpectedRegionSizeSummationAnswer(sum(Arrays.asList(leftover1Sum))))
         .when(rs)
-        .reportRegionSizesForQuotas(any(RegionSizeStore.class));
+        .reportRegionSizesForQuotas(any(RegionSizeEstimaterStore.class));
 
     // We shouldn't compute all of these region sizes, just the leftovers
     final Region r1 = mockRegionWithSize(Arrays.asList(1024L, 2048L));
@@ -225,7 +225,7 @@ public class TestFileSystemUtilizationChore {
     final FileSystemUtilizationChore chore = new FileSystemUtilizationChore(rs);
     doAnswer(new ExpectedRegionSizeSummationAnswer(sum(Arrays.asList(r1Sum))))
         .when(rs)
-        .reportRegionSizesForQuotas(any(RegionSizeStore.class));
+        .reportRegionSizesForQuotas(any(RegionSizeEstimaterStore.class));
 
     final Region r1 = mockRegionWithSize(r1Sizes);
     final Region r2 = mockSplitParentRegionWithSize(r2Sizes);
@@ -246,7 +246,7 @@ public class TestFileSystemUtilizationChore {
     final FileSystemUtilizationChore chore = new FileSystemUtilizationChore(rs);
     doAnswer(new ExpectedRegionSizeSummationAnswer(r1Sum))
         .when(rs)
-        .reportRegionSizesForQuotas(any(RegionSizeStore.class));
+        .reportRegionSizesForQuotas(any(RegionSizeEstimaterStore.class));
 
     final Region r1 = mockRegionWithSize(r1Sizes);
     final Region r2 = mockRegionReplicaWithSize(r2Sizes);
@@ -272,7 +272,7 @@ public class TestFileSystemUtilizationChore {
     final FileSystemUtilizationChore chore = new FileSystemUtilizationChore(rs);
     doAnswer(new ExpectedRegionSizeSummationAnswer(
         sum(Arrays.asList(r1HFileSizeSum, r2HFileSizeSum))))
-        .when(rs).reportRegionSizesForQuotas(any(RegionSizeStore.class));
+        .when(rs).reportRegionSizesForQuotas(any(RegionSizeEstimaterStore.class));
 
     final Region r1 = mockRegionWithHFileLinks(r1StoreFileSizes, r1HFileSizes);
     final Region r2 = mockRegionWithHFileLinks(r2StoreFileSizes, r2HFileSizes);
@@ -297,7 +297,7 @@ public class TestFileSystemUtilizationChore {
     final RegionServerSpaceQuotaManager quotaManager = mock(RegionServerSpaceQuotaManager.class);
     when(rs.getConfiguration()).thenReturn(conf);
     when(rs.getRegionServerSpaceQuotaManager()).thenReturn(quotaManager);
-    when(quotaManager.getRegionSizeStore()).thenReturn(new RegionSizeStoreImpl());
+    when(quotaManager.getRegionSizeStore()).thenReturn(new RegionSizeEstimaterStoreImpl());
     return rs;
   }
 

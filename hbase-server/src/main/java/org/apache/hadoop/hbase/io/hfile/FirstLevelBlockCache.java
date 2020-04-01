@@ -17,14 +17,14 @@
  */
 package org.apache.hadoop.hbase.io.hfile;
 
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.yetus.audience.InterfaceAudience;
 
 /**
  * In-memory BlockCache that may be backed by secondary layer(s).
  */
 @InterfaceAudience.Private
-public interface FirstLevelBlockCache extends ResizableBlockCache, HeapSize {
+public interface FirstLevelBlockCache extends ResizableBlockCache, HeapSizeEstimater {
 
   /**
    * Whether the cache contains the block with specified cacheKey

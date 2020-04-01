@@ -28,13 +28,13 @@ import org.slf4j.LoggerFactory;
  * the value last changed.
  */
 @InterfaceAudience.Private
-public class RegionSizeImpl implements RegionSize {
-  private static final Logger LOG = LoggerFactory.getLogger(RegionSizeImpl.class);
+public class RegionSizeEstimaterImpl implements RegionSizeEstimater {
+  private static final Logger LOG = LoggerFactory.getLogger(RegionSizeEstimaterImpl.class);
   private static final long HEAP_SIZE = ClassSize.OBJECT + ClassSize.ATOMIC_LONG +
     ClassSize.REFERENCE;
   private final AtomicLong size;
 
-  public RegionSizeImpl(long initialSize) {
+  public RegionSizeEstimaterImpl(long initialSize) {
     // A region can never be negative in size. We can prevent this from being a larger problem, but
     // we will need to leave ourselves a note to figure out how we got here.
     if (initialSize < 0L && LOG.isTraceEnabled()) {
@@ -50,7 +50,7 @@ public class RegionSizeImpl implements RegionSize {
   }
 
   @Override
-  public RegionSizeImpl setSize(long newSize) {
+  public RegionSizeEstimaterImpl setSize(long newSize) {
     // Set the new size before advertising that we need to tell the master about it. Worst case
     // we have to wait for the next period to report it.
     size.set(newSize);
@@ -58,7 +58,7 @@ public class RegionSizeImpl implements RegionSize {
   }
 
   @Override
-  public RegionSizeImpl incrementSize(long delta) {
+  public RegionSizeEstimaterImpl incrementSize(long delta) {
     size.addAndGet(delta);
     return this;
   }

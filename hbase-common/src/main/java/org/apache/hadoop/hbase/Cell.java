@@ -18,7 +18,7 @@
 
 package org.apache.hadoop.hbase;
 
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.yetus.audience.InterfaceAudience;
 
 
@@ -60,7 +60,7 @@ import org.apache.yetus.audience.InterfaceAudience;
  * </p>
  */
 @InterfaceAudience.Public
-public interface Cell extends HeapSize {
+public interface Cell extends HeapSizeEstimater {
 
   //1) Row
 

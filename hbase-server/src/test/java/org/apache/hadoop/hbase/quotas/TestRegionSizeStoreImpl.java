@@ -49,7 +49,7 @@ public class TestRegionSizeStoreImpl {
 
   @Test
   public void testSizeUpdates() {
-    RegionSizeStore store = new RegionSizeStoreImpl();
+    RegionSizeEstimaterStore store = new RegionSizeEstimaterStoreImpl();
     assertTrue(store.isEmpty());
     assertEquals(0, store.size());
 
@@ -75,8 +75,8 @@ public class TestRegionSizeStoreImpl {
     store.put(INFOB, 128L);
 
     assertEquals(2, store.size());
-    Map<RegionInfo,RegionSize> records = new HashMap<>();
-    for (Entry<RegionInfo,RegionSize> entry : store) {
+    Map<RegionInfo, RegionSizeEstimater> records = new HashMap<>();
+    for (Entry<RegionInfo, RegionSizeEstimater> entry : store) {
       records.put(entry.getKey(), entry.getValue());
     }
 
@@ -87,7 +87,7 @@ public class TestRegionSizeStoreImpl {
 
   @Test
   public void testNegativeDeltaForMissingRegion() {
-    RegionSizeStore store = new RegionSizeStoreImpl();
+    RegionSizeEstimaterStore store = new RegionSizeEstimaterStoreImpl();
 
     assertNull(store.getRegionSize(INFOA));
 

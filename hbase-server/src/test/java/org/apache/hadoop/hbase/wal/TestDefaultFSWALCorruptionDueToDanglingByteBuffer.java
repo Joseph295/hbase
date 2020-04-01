@@ -23,7 +23,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseClassTestRule;
-import org.apache.hadoop.hbase.regionserver.wal.FSHLog;
+import org.apache.hadoop.hbase.regionserver.wal.DefaultFSWAL;
 import org.apache.hadoop.hbase.regionserver.wal.WALActionsListener;
 import org.apache.hadoop.hbase.testclassification.MediumTests;
 import org.apache.hadoop.hbase.testclassification.RegionServerTests;
@@ -37,14 +37,14 @@ import org.junit.experimental.categories.Category;
  * Testcase for HBASE-22539
  */
 @Category({ RegionServerTests.class, MediumTests.class })
-public class TestFSHLogCorruptionDueToDanglingByteBuffer
+public class TestDefaultFSWALCorruptionDueToDanglingByteBuffer
   extends WALCorruptionDueToDanglingByteBufferTestBase {
 
   @ClassRule
   public static final HBaseClassTestRule CLASS_RULE =
-    HBaseClassTestRule.forClass(TestFSHLogCorruptionDueToDanglingByteBuffer.class);
+    HBaseClassTestRule.forClass(TestDefaultFSWALCorruptionDueToDanglingByteBuffer.class);
 
-  public static final class PauseWAL extends FSHLog {
+  public static final class PauseWAL extends DefaultFSWAL {
 
     public PauseWAL(FileSystem fs, Path rootDir, String logDir, String archiveDir,
       Configuration conf, List<WALActionsListener> listeners, boolean failIfWALExists,

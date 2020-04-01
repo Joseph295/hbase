@@ -31,7 +31,7 @@ import org.apache.yetus.audience.InterfaceAudience;
  */
 @InterfaceAudience.Private
 @edu.umd.cs.findbugs.annotations.SuppressWarnings(value="EQ_DOESNT_OVERRIDE_EQUALS")
-public class SizeCachedKeyValue extends KeyValue {
+public class SizeEstimaterCachedKeyValue extends KeyValue {
   // Overhead in this class alone. Parent's overhead will be considered in usage places by calls to
   // super. methods
   private static final int FIXED_OVERHEAD = Bytes.SIZEOF_SHORT + Bytes.SIZEOF_INT;
@@ -39,7 +39,7 @@ public class SizeCachedKeyValue extends KeyValue {
   private short rowLen;
   private int keyLen;
 
-  public SizeCachedKeyValue(byte[] bytes, int offset, int length, long seqId) {
+  public SizeEstimaterCachedKeyValue(byte[] bytes, int offset, int length, long seqId) {
     super(bytes, offset, length);
     // We will read all these cached values at least once. Initialize now itself so that we can
     // avoid uninitialized checks with every time call
@@ -66,7 +66,7 @@ public class SizeCachedKeyValue extends KeyValue {
   /**
    * Override by just returning the length for saving cost of method dispatching. If not, it will
    * call {@link ExtendedCell#getSerializedSize()} firstly, then forward to
-   * {@link SizeCachedKeyValue#getSerializedSize(boolean)}. (See HBASE-21657)
+   * {@link SizeEstimaterCachedKeyValue#getSerializedSize(boolean)}. (See HBASE-21657)
    */
   @Override
   public int getSerializedSize() {

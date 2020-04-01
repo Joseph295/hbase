@@ -48,7 +48,7 @@ import org.apache.hadoop.hbase.trace.TraceUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.ClassSize;
 import org.apache.hadoop.hbase.util.FSUtils;
-import org.apache.hadoop.hbase.util.HasThread;
+import org.apache.hadoop.hbase.util.ThreadWrapper;
 import org.apache.hadoop.hbase.util.Threads;
 import org.apache.hadoop.hbase.wal.FSHLogProvider;
 import org.apache.hadoop.hbase.wal.WALEdit;
@@ -68,7 +68,7 @@ import org.apache.hbase.thirdparty.com.google.common.annotations.VisibleForTesti
  * The default implementation of FSWAL.
  */
 @InterfaceAudience.Private
-public class FSHLog extends AbstractFSWAL<Writer> {
+public class DefaultFSWAL extends AbstractFSWAL<Writer> {
   // IMPLEMENTATION NOTES:
   //
   // At the core is a ring buffer. Our ring buffer is the LMAX Disruptor. It tries to
@@ -104,7 +104,7 @@ public class FSHLog extends AbstractFSWAL<Writer> {
   // syncs and appends have completed -- so the log roller can swap the WAL out under it.
   //
   // We use ring buffer sequence as txid of FSWALEntry and SyncFuture.
-  private static final Logger LOG = LoggerFactory.getLogger(FSHLog.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultFSWAL.class);
 
   /**
    * The nexus at which all incoming handlers meet. Does appends and sync with an ordering. Appends
@@ -184,7 +184,7 @@ public class FSHLog extends AbstractFSWAL<Writer> {
    * @param conf configuration to use
    */
   @VisibleForTesting
-  public FSHLog(final FileSystem fs, final Path root, final String logDir, final Configuration conf)
+  public DefaultFSWAL(final FileSystem fs, final Path root, final String logDir, final Configuration conf)
       throws IOException {
     this(fs, root, logDir, HConstants.HREGION_OLDLOGDIR_NAME, conf, null, true, null, null);
   }
@@ -207,7 +207,7 @@ public class FSHLog extends AbstractFSWAL<Writer> {
    * @param suffix will be url encoded. null is treated as empty. non-empty must start with
    *          {@link org.apache.hadoop.hbase.wal.AbstractFSWALProvider#WAL_FILE_NAME_DELIMITER}
    */
-  public FSHLog(final FileSystem fs, final Path rootDir, final String logDir,
+  public DefaultFSWAL(final FileSystem fs, final Path rootDir, final String logDir,
       final String archiveDir, final Configuration conf, final List<WALActionsListener> listeners,
       final boolean failIfWALExists, final String prefix, final String suffix) throws IOException {
     super(fs, rootDir, logDir, archiveDir, conf, listeners, failIfWALExists, prefix, suffix);
@@ -453,7 +453,7 @@ public class FSHLog extends AbstractFSWAL<Writer> {
    * SyncFutures are 'artificial', something to hold the Handler until the filesystem sync
    * completes.
    */
-  private class SyncRunner extends HasThread {
+  private class SyncRunner extends ThreadWrapper {
     private volatile long sequence;
     // Keep around last exception thrown. Clear on successful sync.
     private final BlockingQueue<SyncFuture> syncFutures;
@@ -1094,7 +1094,7 @@ public class FSHLog extends AbstractFSWAL<Writer> {
      */
     void append(final FSWALEntry entry) throws Exception {
       try {
-        FSHLog.this.appendEntry(writer, entry);
+        DefaultFSWAL.this.appendEntry(writer, entry);
       } catch (Exception e) {
         String msg = "Append sequenceId=" + entry.getKey().getSequenceId()
             + ", requesting roll of WAL";

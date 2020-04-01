@@ -49,7 +49,7 @@ public class TestBucketWriterThread {
       HBaseClassTestRule.forClass(TestBucketWriterThread.class);
 
   private BucketCache bc;
-  private BucketCache.WriterThread wt;
+  private BucketCache.WriterThreadWrapper wt;
   private BlockingQueue<RAMQueueEntry> q;
   private Cacheable plainCacheable;
   private BlockCacheKey plainKey;
@@ -168,7 +168,7 @@ public class TestBucketWriterThread {
     doDrainOfOneEntry(bc, wt, q);
   }
 
-  private static void doDrainOfOneEntry(final BucketCache bc, final BucketCache.WriterThread wt,
+  private static void doDrainOfOneEntry(final BucketCache bc, final BucketCache.WriterThreadWrapper wt,
       final BlockingQueue<RAMQueueEntry> q)
   throws InterruptedException {
     List<RAMQueueEntry> rqes = BucketCache.getRAMQueueEntries(q, new ArrayList<>(1));

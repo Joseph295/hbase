@@ -61,7 +61,7 @@ public class RegionServerSpaceQuotaManager {
   private boolean started = false;
   private final ConcurrentHashMap<TableName,SpaceViolationPolicyEnforcement> enforcedPolicies;
   private SpaceViolationPolicyEnforcementFactory factory;
-  private RegionSizeStore regionSizeStore;
+  private RegionSizeEstimaterStore regionSizeStore;
   private RegionSizeReportingChore regionSizeReporter;
 
   public RegionServerSpaceQuotaManager(RegionServerServices rsServices) {
@@ -76,7 +76,7 @@ public class RegionServerSpaceQuotaManager {
     this.enforcedPolicies = new ConcurrentHashMap<>();
     this.currentQuotaSnapshots = new AtomicReference<>(new HashMap<>());
     // Initialize the size store to not track anything -- create the real one if we're start()'ed
-    this.regionSizeStore = NoOpRegionSizeStore.getInstance();
+    this.regionSizeStore = NoOpRegionSizeEstimaterStore.getInstance();
   }
 
   public synchronized void start() throws IOException {
@@ -231,11 +231,11 @@ public class RegionServerSpaceQuotaManager {
   }
 
   /**
-   * Returns the {@link RegionSizeStore} tracking filesystem utilization by each region.
+   * Returns the {@link RegionSizeEstimaterStore} tracking filesystem utilization by each region.
    *
-   * @return A {@link RegionSizeStore} implementation.
+   * @return A {@link RegionSizeEstimaterStore} implementation.
    */
-  public RegionSizeStore getRegionSizeStore() {
+  public RegionSizeEstimaterStore getRegionSizeStore() {
     return regionSizeStore;
   }
 

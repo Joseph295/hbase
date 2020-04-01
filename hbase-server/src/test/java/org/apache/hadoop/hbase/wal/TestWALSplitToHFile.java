@@ -56,7 +56,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.regionserver.wal.AbstractTestWALReplay;
-import org.apache.hadoop.hbase.regionserver.wal.FSHLog;
+import org.apache.hadoop.hbase.regionserver.wal.DefaultFSWAL;
 import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.testclassification.MediumTests;
 import org.apache.hadoop.hbase.testclassification.RegionServerTests;
@@ -157,7 +157,7 @@ public class TestWALSplitToHFile {
   }
 
   private WAL createWAL(Configuration c, Path hbaseRootDir, String logName) throws IOException {
-    FSHLog wal = new FSHLog(FileSystem.get(c), hbaseRootDir, logName, c);
+    DefaultFSWAL wal = new DefaultFSWAL(FileSystem.get(c), hbaseRootDir, logName, c);
     wal.init();
     return wal;
   }

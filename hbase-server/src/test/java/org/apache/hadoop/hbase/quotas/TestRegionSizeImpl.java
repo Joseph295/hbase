@@ -33,7 +33,7 @@ public class TestRegionSizeImpl {
   @Test
   public void testReportingWithSizeChanges() {
     long currentSize = 1024L;
-    RegionSizeImpl size = new RegionSizeImpl(currentSize);
+    RegionSizeEstimaterImpl size = new RegionSizeEstimaterImpl(currentSize);
 
     assertEquals(currentSize, size.getSize());
 

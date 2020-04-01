@@ -23,20 +23,20 @@ import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.yetus.audience.InterfaceAudience;
 
 /**
- * A {@link RegionSizeStore} implementation that stores nothing.
+ * A {@link RegionSizeEstimaterStore} implementation that stores nothing.
  */
 @InterfaceAudience.Private
-public final class NoOpRegionSizeStore implements RegionSizeStore {
-  private static final NoOpRegionSizeStore INSTANCE = new NoOpRegionSizeStore();
+public final class NoOpRegionSizeEstimaterStore implements RegionSizeEstimaterStore {
+  private static final NoOpRegionSizeEstimaterStore INSTANCE = new NoOpRegionSizeEstimaterStore();
 
-  private NoOpRegionSizeStore() {}
+  private NoOpRegionSizeEstimaterStore() {}
 
-  public static NoOpRegionSizeStore getInstance() {
+  public static NoOpRegionSizeEstimaterStore getInstance() {
     return INSTANCE;
   }
 
   @Override
-  public Iterator<Entry<RegionInfo,RegionSize>> iterator() {
+  public Iterator<Entry<RegionInfo, RegionSizeEstimater>> iterator() {
     return null;
   }
 
@@ -46,7 +46,7 @@ public final class NoOpRegionSizeStore implements RegionSizeStore {
   }
 
   @Override
-  public RegionSize getRegionSize(RegionInfo regionInfo) {
+  public RegionSizeEstimater getRegionSize(RegionInfo regionInfo) {
     return null;
   }
 
@@ -57,7 +57,7 @@ public final class NoOpRegionSizeStore implements RegionSizeStore {
   public void incrementRegionSize(RegionInfo regionInfo, long delta) {}
 
   @Override
-  public RegionSize remove(RegionInfo regionInfo) {
+  public RegionSizeEstimater remove(RegionInfo regionInfo) {
     return null;
   }
 

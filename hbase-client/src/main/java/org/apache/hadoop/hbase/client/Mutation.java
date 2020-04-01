@@ -46,7 +46,7 @@ import org.apache.hadoop.hbase.PrivateCellUtil;
 import org.apache.hadoop.hbase.RawCell;
 import org.apache.hadoop.hbase.Tag;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.security.access.AccessControlConstants;
@@ -67,7 +67,7 @@ import org.apache.hbase.thirdparty.com.google.common.io.ByteStreams;
 
 @InterfaceAudience.Public
 public abstract class Mutation extends OperationWithAttributes implements Row, CellScannable,
-    HeapSize {
+        HeapSizeEstimater {
   public static final long MUTATION_OVERHEAD = ClassSize.align(
       // This
       ClassSize.OBJECT +

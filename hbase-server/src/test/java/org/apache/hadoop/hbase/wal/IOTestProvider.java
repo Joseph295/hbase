@@ -35,7 +35,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.RegionInfo;
 // imports for things that haven't moved from regionserver.wal yet.
-import org.apache.hadoop.hbase.regionserver.wal.FSHLog;
+import org.apache.hadoop.hbase.regionserver.wal.DefaultFSWAL;
 import org.apache.hadoop.hbase.regionserver.wal.ProtobufLogWriter;
 import org.apache.hadoop.hbase.regionserver.wal.WALActionsListener;
 import org.apache.hadoop.hbase.util.CommonFSUtils;
@@ -86,7 +86,7 @@ public class IOTestProvider implements WALProvider {
 
   private Configuration conf;
 
-  private volatile FSHLog log;
+  private volatile DefaultFSWAL log;
 
   private String providerId;
   protected AtomicBoolean initialized = new AtomicBoolean(false);
@@ -113,7 +113,7 @@ public class IOTestProvider implements WALProvider {
     return Collections.singletonList(log);
   }
 
-  private FSHLog createWAL() throws IOException {
+  private DefaultFSWAL createWAL() throws IOException {
     String logPrefix = factory.factoryId + WAL_FILE_NAME_DELIMITER + providerId;
     return new IOTestWAL(CommonFSUtils.getWALFileSystem(conf), CommonFSUtils.getWALRootDir(conf),
         AbstractFSWALProvider.getWALDirectoryName(factory.factoryId),
@@ -123,7 +123,7 @@ public class IOTestProvider implements WALProvider {
 
   @Override
   public WAL getWAL(RegionInfo region) throws IOException {
-    FSHLog log = this.log;
+    DefaultFSWAL log = this.log;
     if (log != null) {
       return log;
     }
@@ -139,7 +139,7 @@ public class IOTestProvider implements WALProvider {
 
   @Override
   public void close() throws IOException {
-    FSHLog log = this.log;
+    DefaultFSWAL log = this.log;
     if (log != null) {
       log.close();
     }
@@ -147,13 +147,13 @@ public class IOTestProvider implements WALProvider {
 
   @Override
   public void shutdown() throws IOException {
-    FSHLog log = this.log;
+    DefaultFSWAL log = this.log;
     if (log != null) {
       log.shutdown();
     }
   }
 
-  private static class IOTestWAL extends FSHLog {
+  private static class IOTestWAL extends DefaultFSWAL {
 
     private final boolean doFileRolls;
 

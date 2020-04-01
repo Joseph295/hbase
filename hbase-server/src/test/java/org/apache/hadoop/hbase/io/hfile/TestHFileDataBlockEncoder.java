@@ -33,7 +33,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.io.ByteArrayOutputStream;
 import org.apache.hadoop.hbase.io.ByteBuffAllocator;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.io.compress.Compression.Algorithm;
 import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
 import org.apache.hadoop.hbase.io.encoding.HFileBlockDefaultEncodingContext;
@@ -94,10 +94,10 @@ public class TestHFileDataBlockEncoder {
     BlockCacheKey cacheKey = new BlockCacheKey("test", 0);
     blockCache.cacheBlock(cacheKey, cacheBlock);
 
-    HeapSize heapSize = blockCache.getBlock(cacheKey, false, false, true);
-    assertTrue(heapSize instanceof HFileBlock);
+    HeapSizeEstimater heapSizeEstimater = blockCache.getBlock(cacheKey, false, false, true);
+    assertTrue(heapSizeEstimater instanceof HFileBlock);
 
-    HFileBlock returnedBlock = (HFileBlock) heapSize;
+    HFileBlock returnedBlock = (HFileBlock) heapSizeEstimater;
 
     if (blockEncoder.getDataBlockEncoding() ==
         DataBlockEncoding.NONE) {

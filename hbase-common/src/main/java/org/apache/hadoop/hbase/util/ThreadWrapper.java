@@ -30,15 +30,15 @@ import org.apache.yetus.audience.InterfaceAudience;
  * lock. This can produce deadlocks like HBASE-4367, HBASE-4101, etc.
  */
 @InterfaceAudience.Private
-public abstract class HasThread implements Runnable {
+public abstract class ThreadWrapper implements Runnable {
   private final Thread thread;
   
-  public HasThread() {
+  public ThreadWrapper() {
     this.thread = new Thread(this);
     this.thread.setDaemon(true);
   }
 
-  public HasThread(String name) {
+  public ThreadWrapper(String name) {
     this.thread = new Thread(this, name);
     this.thread.setDaemon(true);
   }

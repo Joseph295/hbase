@@ -83,7 +83,7 @@ public class RegionSizeReportingChore extends ScheduledChore {
         rsServices.getRegionServerSpaceQuotaManager();
     // Get the HRegionInfo for each online region
     HashSet<RegionInfo> onlineRegionInfos = getOnlineRegionInfos(rsServices.getRegions());
-    RegionSizeStore store = quotaManager.getRegionSizeStore();
+    RegionSizeEstimaterStore store = quotaManager.getRegionSizeStore();
     // Remove all sizes for non-online regions
     removeNonOnlineRegions(store, onlineRegionInfos);
     rsServices.reportRegionSizesForQuotas(store);
@@ -95,7 +95,7 @@ public class RegionSizeReportingChore extends ScheduledChore {
     return regionInfos;
   }
 
-  void removeNonOnlineRegions(RegionSizeStore store, Set<RegionInfo> onlineRegions) {
+  void removeNonOnlineRegions(RegionSizeEstimaterStore store, Set<RegionInfo> onlineRegions) {
     // We have to remove regions which are no longer online from the store, otherwise they will
     // continue to be sent to the Master which will prevent size report expiration.
     if (onlineRegions.isEmpty()) {
@@ -104,10 +104,10 @@ public class RegionSizeReportingChore extends ScheduledChore {
       return;
     }
 
-    Iterator<Entry<RegionInfo,RegionSize>> iter = store.iterator();
+    Iterator<Entry<RegionInfo, RegionSizeEstimater>> iter = store.iterator();
     int numEntriesRemoved = 0;
     while (iter.hasNext()) {
-      Entry<RegionInfo,RegionSize> entry = iter.next();
+      Entry<RegionInfo, RegionSizeEstimater> entry = iter.next();
       RegionInfo regionInfo = entry.getKey();
       if (!onlineRegions.contains(regionInfo)) {
         numEntriesRemoved++;

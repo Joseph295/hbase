@@ -30,7 +30,7 @@ import org.apache.hadoop.hbase.CellBuilder;
 import org.apache.hadoop.hbase.CellBuilderType;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.security.access.Permission;
 import org.apache.hadoop.hbase.security.visibility.CellVisibility;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -45,7 +45,7 @@ import org.apache.yetus.audience.InterfaceAudience;
  * setting the timestamp.
  */
 @InterfaceAudience.Public
-public class Put extends Mutation implements HeapSize {
+public class Put extends Mutation implements HeapSizeEstimater {
   /**
    * Create a Put operation for the specified row.
    * @param row row key

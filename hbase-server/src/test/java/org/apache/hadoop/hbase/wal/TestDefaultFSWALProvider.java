@@ -59,13 +59,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Category({RegionServerTests.class, MediumTests.class})
-public class TestFSHLogProvider {
+public class TestDefaultFSWALProvider {
 
   @ClassRule
   public static final HBaseClassTestRule CLASS_RULE =
-      HBaseClassTestRule.forClass(TestFSHLogProvider.class);
+      HBaseClassTestRule.forClass(TestDefaultFSWALProvider.class);
 
-  private static final Logger LOG = LoggerFactory.getLogger(TestFSHLogProvider.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestDefaultFSWALProvider.class);
 
   private static Configuration conf;
   private static FileSystem fs;

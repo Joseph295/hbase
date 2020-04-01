@@ -22,7 +22,7 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.regionserver.wal.FSHLog;
+import org.apache.hadoop.hbase.regionserver.wal.DefaultFSWAL;
 import org.apache.hadoop.hbase.regionserver.wal.ProtobufLogWriter;
 import org.apache.hadoop.hbase.regionserver.wal.WALUtil;
 import org.apache.hadoop.hbase.util.CommonFSUtils;
@@ -33,11 +33,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A WAL provider that use {@link FSHLog}.
+ * A WAL provider that use {@link DefaultFSWAL}.
  */
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
-public class FSHLogProvider extends AbstractFSWALProvider<FSHLog> {
+public class FSHLogProvider extends AbstractFSWALProvider<DefaultFSWAL> {
 
   private static final Logger LOG = LoggerFactory.getLogger(FSHLogProvider.class);
 
@@ -100,8 +100,8 @@ public class FSHLogProvider extends AbstractFSWALProvider<FSHLog> {
   }
 
   @Override
-  protected FSHLog createWAL() throws IOException {
-    return new FSHLog(CommonFSUtils.getWALFileSystem(conf), CommonFSUtils.getWALRootDir(conf),
+  protected DefaultFSWAL createWAL() throws IOException {
+    return new DefaultFSWAL(CommonFSUtils.getWALFileSystem(conf), CommonFSUtils.getWALRootDir(conf),
         getWALDirectoryName(factory.factoryId),
         getWALArchiveDirectoryName(conf, factory.factoryId), conf, listeners, true, logPrefix,
         META_WAL_PROVIDER_ID.equals(providerId) ? META_WAL_PROVIDER_ID : null);

@@ -21,7 +21,7 @@ package org.apache.hadoop.hbase.io.hfile;
 import java.util.Iterator;
 
 import org.apache.yetus.audience.InterfaceAudience;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.io.hfile.BlockType.BlockCategory;
 import org.apache.hadoop.hbase.io.hfile.bucket.BucketCache;
 
@@ -38,7 +38,7 @@ import org.apache.hbase.thirdparty.com.google.common.annotations.VisibleForTesti
  * Metrics are the combined size and hits and misses of both caches.
  */
 @InterfaceAudience.Private
-public class CombinedBlockCache implements ResizableBlockCache, HeapSize {
+public class CombinedBlockCache implements ResizableBlockCache, HeapSizeEstimater {
   protected final FirstLevelBlockCache l1Cache;
   protected final BlockCache l2Cache;
   protected final CombinedCacheStats combinedCacheStats;
@@ -53,8 +53,8 @@ public class CombinedBlockCache implements ResizableBlockCache, HeapSize {
   @Override
   public long heapSize() {
     long l2size = 0;
-    if (l2Cache instanceof HeapSize) {
-      l2size = ((HeapSize) l2Cache).heapSize();
+    if (l2Cache instanceof HeapSizeEstimater) {
+      l2size = ((HeapSizeEstimater) l2Cache).heapSize();
     }
     return l1Cache.heapSize() + l2size;
   }

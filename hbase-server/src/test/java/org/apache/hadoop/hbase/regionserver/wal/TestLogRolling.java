@@ -97,10 +97,10 @@ public class TestLogRolling extends AbstractTestLogRolling {
     AbstractTestLogRolling.setUpBeforeClass();
 
     // For slow sync threshold test: roll after 5 slow syncs in 10 seconds
-    TEST_UTIL.getConfiguration().setInt(FSHLog.SLOW_SYNC_ROLL_THRESHOLD, 5);
-    TEST_UTIL.getConfiguration().setInt(FSHLog.SLOW_SYNC_ROLL_INTERVAL_MS, 10 * 1000);
+    TEST_UTIL.getConfiguration().setInt(DefaultFSWAL.SLOW_SYNC_ROLL_THRESHOLD, 5);
+    TEST_UTIL.getConfiguration().setInt(DefaultFSWAL.SLOW_SYNC_ROLL_INTERVAL_MS, 10 * 1000);
     // For slow sync threshold test: roll once after a sync above this threshold
-    TEST_UTIL.getConfiguration().setInt(FSHLog.ROLL_ON_SYNC_TIME_MS, 5000);
+    TEST_UTIL.getConfiguration().setInt(DefaultFSWAL.ROLL_ON_SYNC_TIME_MS, 5000);
   }
 
   @Test
@@ -115,7 +115,7 @@ public class TestLogRolling extends AbstractTestLogRolling {
       // Get a reference to the FSHLog
       server = TEST_UTIL.getRSForFirstRegionInTable(desc.getTableName());
       RegionInfo region = server.getRegions(desc.getTableName()).get(0).getRegionInfo();
-      final FSHLog log = (FSHLog) server.getWAL(region);
+      final DefaultFSWAL log = (DefaultFSWAL) server.getWAL(region);
 
       // Register a WALActionsListener to observe if a SLOW_SYNC roll is requested
 
@@ -269,7 +269,7 @@ public class TestLogRolling extends AbstractTestLogRolling {
     }
   }
 
-  void batchWriteAndWait(Table table, final FSHLog log, int start, boolean expect, int timeout)
+  void batchWriteAndWait(Table table, final DefaultFSWAL log, int start, boolean expect, int timeout)
       throws IOException {
     for (int i = 0; i < 10; i++) {
       Put put = new Put(Bytes.toBytes("row" + String.format("%1$04d", (start + i))));
@@ -318,7 +318,7 @@ public class TestLogRolling extends AbstractTestLogRolling {
 
     server = TEST_UTIL.getRSForFirstRegionInTable(desc.getTableName());
     RegionInfo region = server.getRegions(desc.getTableName()).get(0).getRegionInfo();
-    final FSHLog log = (FSHLog) server.getWAL(region);
+    final DefaultFSWAL log = (DefaultFSWAL) server.getWAL(region);
     final AtomicBoolean lowReplicationHookCalled = new AtomicBoolean(false);
 
     log.registerWALActionsListener(new WALActionsListener() {

@@ -33,7 +33,7 @@ import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.RemovalListener;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.io.hfile.bucket.BucketCache;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hbase.thirdparty.com.google.common.annotations.VisibleForTesting;
@@ -45,7 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A block cache that is memory-aware using {@link HeapSize}, memory bounded using the W-TinyLFU
+ * A block cache that is memory-aware using {@link HeapSizeEstimater}, memory bounded using the W-TinyLFU
  * eviction algorithm, and concurrent. This implementation delegates to a Caffeine cache to provide
  * O(1) read and write operations.
  * <ul>

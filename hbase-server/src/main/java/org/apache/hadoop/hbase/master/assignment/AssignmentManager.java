@@ -72,7 +72,7 @@ import org.apache.hadoop.hbase.procedure2.util.StringUtils;
 import org.apache.hadoop.hbase.regionserver.SequenceId;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
-import org.apache.hadoop.hbase.util.HasThread;
+import org.apache.hadoop.hbase.util.ThreadWrapper;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.util.Threads;
 import org.apache.hadoop.hbase.util.VersionInfo;
@@ -1891,7 +1891,7 @@ public class AssignmentManager {
   private void startAssignmentThread() {
     // Get Server Thread name. Sometimes the Server is mocked so may not implement HasThread.
     // For example, in tests.
-    String name = master instanceof HasThread? ((HasThread)master).getName():
+    String name = master instanceof ThreadWrapper ? ((ThreadWrapper)master).getName():
         master.getServerName().toShortString();
     assignThread = new Thread(name) {
       @Override

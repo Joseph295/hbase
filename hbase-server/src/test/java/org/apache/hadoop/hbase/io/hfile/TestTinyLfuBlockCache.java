@@ -27,7 +27,7 @@ import java.nio.ByteBuffer;
 import java.util.Random;
 
 import org.apache.hadoop.hbase.HBaseClassTestRule;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.testclassification.IOTests;
 import org.apache.hadoop.hbase.testclassification.SmallTests;
 import org.apache.hadoop.hbase.util.ClassSize;
@@ -73,7 +73,7 @@ public class TestTinyLfuBlockCache {
 
     // Check if all blocks are properly cached and retrieved
     for (CachedItem block : blocks) {
-      HeapSize buf = cache.getBlock(block.cacheKey, true, false, true);
+      HeapSizeEstimater buf = cache.getBlock(block.cacheKey, true, false, true);
       assertTrue(buf != null);
       assertEquals(buf.heapSize(), block.heapSize());
     }
@@ -92,7 +92,7 @@ public class TestTinyLfuBlockCache {
 
     // Check if all blocks are properly cached and retrieved
     for (CachedItem block : blocks) {
-      HeapSize buf = cache.getBlock(block.cacheKey, true, false, true);
+      HeapSizeEstimater buf = cache.getBlock(block.cacheKey, true, false, true);
       assertTrue(buf != null);
       assertEquals(buf.heapSize(), block.heapSize());
     }

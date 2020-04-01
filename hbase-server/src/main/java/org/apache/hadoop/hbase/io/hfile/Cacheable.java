@@ -21,7 +21,7 @@ package org.apache.hadoop.hbase.io.hfile;
 
 import java.nio.ByteBuffer;
 
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.nio.HBaseReferenceCounted;
 import org.apache.yetus.audience.InterfaceAudience;
 
@@ -35,7 +35,7 @@ import org.apache.yetus.audience.InterfaceAudience;
  *
  */
 @InterfaceAudience.Private
-public interface Cacheable extends HeapSize, HBaseReferenceCounted {
+public interface Cacheable extends HeapSizeEstimater, HBaseReferenceCounted {
   /**
    * Returns the length of the ByteBuffer required to serialized the object. If the
    * object cannot be serialized, it should return 0.

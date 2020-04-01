@@ -49,17 +49,17 @@ public class ClientSideRegionScanner extends AbstractClientScanner {
   RegionScanner scanner;
   List<Cell> values;
 
-  public ClientSideRegionScanner(Configuration conf, FileSystem fs,
-      Path rootDir, TableDescriptor htd, RegionInfo hri, Scan scan, ScanMetrics scanMetrics)
+  public ClientSideRegionScanner(Configuration conf, FileSystem fileSystem,
+      Path rootDir, TableDescriptor tableDescriptor, RegionInfo regionInfo, Scan scan, ScanMetrics scanMetrics)
       throws IOException {
     // region is immutable, set isolation level
     scan.setIsolationLevel(IsolationLevel.READ_UNCOMMITTED);
 
-    htd = TableDescriptorBuilder.newBuilder(htd).setReadOnly(true).build();
+    tableDescriptor = TableDescriptorBuilder.newBuilder(tableDescriptor).setReadOnly(true).build();
 
     // open region from the snapshot directory
-    region = HRegion.newHRegion(FSUtils.getTableDir(rootDir, htd.getTableName()), null, fs, conf,
-      hri, htd, null);
+    region = HRegion.newHRegion(FSUtils.getTableDir(rootDir, tableDescriptor.getTableName()), null, fileSystem, conf,
+      regionInfo, tableDescriptor, null);
     region.setRestoredRegion(true);
     // we won't initialize the MobFileCache when not running in RS process. so provided an
     // initialized cache. Consider the case: an CF was set from an mob to non-mob. if we only

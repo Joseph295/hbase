@@ -32,7 +32,7 @@ import org.apache.yetus.audience.InterfaceAudience;
  * <p>
  * For example:
  * <pre>
- * public class SampleObject implements HeapSize {
+ * public class SampleObject implements HeapSizeEstimater {
  *
  *   int [] numbers;
  *   int x;
@@ -40,7 +40,7 @@ import org.apache.yetus.audience.InterfaceAudience;
  * </pre>
  */
 @InterfaceAudience.Private
-public interface HeapSize {
+public interface HeapSizeEstimater {
   /**
    * @return Approximate 'exclusive deep size' of implementing object.  Includes
    * count of payload and hosting object sizings.

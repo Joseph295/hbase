@@ -20,7 +20,7 @@ package org.apache.hadoop.hbase.io.hfile;
 import org.apache.hadoop.hbase.CellComparator;
 import org.apache.hadoop.hbase.CellComparatorImpl;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.io.crypto.Encryption;
 import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
@@ -36,7 +36,7 @@ import org.apache.yetus.audience.InterfaceAudience;
  * @see HFileContextBuilder
  */
 @InterfaceAudience.Private
-public class HFileContext implements HeapSize, Cloneable {
+public class HFileContext implements HeapSizeEstimater, Cloneable {
   public static final int FIXED_OVERHEAD = ClassSize.align(ClassSize.OBJECT +
       // Algorithm, checksumType, encoding, Encryption.Context, hfileName reference,
       5 * ClassSize.REFERENCE + 2 * Bytes.SIZEOF_INT +

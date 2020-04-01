@@ -212,7 +212,7 @@ public class TestLogRollAbort {
       }
       // Send the data to HDFS datanodes and close the HDFS writer
       log.sync();
-      ((AbstractFSWAL<?>) log).replaceWriter(((FSHLog)log).getOldPath(), null, null);
+      ((AbstractFSWAL<?>) log).replaceWriter(((DefaultFSWAL)log).getOldPath(), null, null);
 
       // code taken from MasterFileSystem.getLogDirs(), which is called from
       // MasterFileSystem.splitLog() handles RS shutdowns (as observed by the splitting process)

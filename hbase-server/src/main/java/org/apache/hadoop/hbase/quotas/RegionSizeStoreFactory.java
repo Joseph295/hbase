@@ -19,7 +19,7 @@ package org.apache.hadoop.hbase.quotas;
 import org.apache.yetus.audience.InterfaceAudience;
 
 /**
- * A factory class for creating implementations of {@link RegionSizeStore}.
+ * A factory class for creating implementations of {@link RegionSizeEstimaterStore}.
  */
 @InterfaceAudience.Private
 public final class RegionSizeStoreFactory {
@@ -31,8 +31,8 @@ public final class RegionSizeStoreFactory {
     return INSTANCE;
   }
 
-  public RegionSizeStore createStore() {
+  public RegionSizeEstimaterStore createStore() {
     // Presently, there is only one implementation.
-    return new RegionSizeStoreImpl();
+    return new RegionSizeEstimaterStoreImpl();
   }
 }

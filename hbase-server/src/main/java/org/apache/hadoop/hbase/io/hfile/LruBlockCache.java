@@ -35,11 +35,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.ClassSize;
-import org.apache.hadoop.hbase.util.HasThread;
+import org.apache.hadoop.hbase.util.ThreadWrapper;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.yetus.audience.InterfaceAudience;
 import org.slf4j.Logger;
@@ -51,7 +51,7 @@ import org.apache.hbase.thirdparty.com.google.common.base.Objects;
 import org.apache.hbase.thirdparty.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
- * A block cache implementation that is memory-aware using {@link HeapSize},
+ * A block cache implementation that is memory-aware using {@link HeapSizeEstimater},
  * memory-bound using an LRU eviction algorithm, and concurrent: backed by a
  * {@link ConcurrentHashMap} and with a non-blocking eviction thread giving
  * constant-time {@link #cacheBlock} and {@link #getBlock} operations.<p>
@@ -171,7 +171,7 @@ public class LruBlockCache implements FirstLevelBlockCache {
   private volatile boolean evictionInProgress = false;
 
   /** Eviction thread */
-  private transient final EvictionThread evictionThread;
+  private transient final EvictionThreadWrapper evictionThread;
 
   /** Statistics thread schedule pool (for heavy debugging, could remove) */
   private transient final ScheduledExecutorService scheduleThreadPool =
@@ -333,7 +333,7 @@ public class LruBlockCache implements FirstLevelBlockCache {
     this.size = new AtomicLong(this.overhead);
     this.hardCapacityLimitFactor = hardLimitFactor;
     if (evictionThread) {
-      this.evictionThread = new EvictionThread(this);
+      this.evictionThread = new EvictionThreadWrapper(this);
       this.evictionThread.start(); // FindBugs SC_START_IN_CTOR
     } else {
       this.evictionThread = null;
@@ -910,7 +910,7 @@ public class LruBlockCache implements FirstLevelBlockCache {
     return this.dataBlockElements.sum();
   }
 
-  EvictionThread getEvictionThread() {
+  EvictionThreadWrapper getEvictionThread() {
     return this.evictionThread;
   }
 
@@ -920,14 +920,14 @@ public class LruBlockCache implements FirstLevelBlockCache {
    *
    * Thread is triggered into action by {@link LruBlockCache#runEviction()}
    */
-  static class EvictionThread extends HasThread {
+  static class EvictionThreadWrapper extends ThreadWrapper {
 
     private WeakReference<LruBlockCache> cache;
     private volatile boolean go = true;
     // flag set after enter the run method, used for test
     private boolean enteringRun = false;
 
-    public EvictionThread(LruBlockCache cache) {
+    public EvictionThreadWrapper(LruBlockCache cache) {
       super(Thread.currentThread().getName() + ".LruBlockCache.EvictionThread");
       setDaemon(true);
       this.cache = new WeakReference<>(cache);

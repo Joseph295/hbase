@@ -25,7 +25,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.RegionInfo;
-import org.apache.hadoop.hbase.regionserver.wal.FSHLog;
+import org.apache.hadoop.hbase.regionserver.wal.DefaultFSWAL;
 import org.apache.yetus.audience.InterfaceAudience;
 
 // imports for things that haven't moved yet
@@ -34,7 +34,7 @@ import org.apache.yetus.audience.InterfaceAudience;
  * This is a utility class, used by tests, which fails operation specified by FailureType enum
  */
 @InterfaceAudience.Private
-public class FaultyFSLog extends FSHLog {
+public class FaultyFSLog extends DefaultFSWAL {
   public enum FailureType {
     NONE, APPEND, SYNC
   }

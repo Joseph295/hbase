@@ -138,7 +138,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion.RegionScannerImpl;
 import org.apache.hadoop.hbase.regionserver.Region.RowLock;
 import org.apache.hadoop.hbase.regionserver.TestHStore.FaultyFileSystem;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
-import org.apache.hadoop.hbase.regionserver.wal.FSHLog;
+import org.apache.hadoop.hbase.regionserver.wal.DefaultFSWAL;
 import org.apache.hadoop.hbase.regionserver.wal.MetricsWALSource;
 import org.apache.hadoop.hbase.regionserver.wal.WALUtil;
 import org.apache.hadoop.hbase.replication.regionserver.ReplicationObserver;
@@ -399,7 +399,7 @@ public class TestHRegion {
     String testName = "testMemstoreSizeAccountingWithFailedPostBatchMutate";
     FileSystem fs = FileSystem.get(CONF);
     Path rootDir = new Path(dir + testName);
-    FSHLog hLog = new FSHLog(fs, rootDir, testName, CONF);
+    DefaultFSWAL hLog = new DefaultFSWAL(fs, rootDir, testName, CONF);
     hLog.init();
     region = initHRegion(tableName, null, null, false, Durability.SYNC_WAL, hLog,
         COLUMN_FAMILY_BYTES);
@@ -1206,7 +1206,7 @@ public class TestHRegion {
     final Configuration walConf = new Configuration(TEST_UTIL.getConfiguration());
     FSUtils.setRootDir(walConf, logDir);
     // Make up a WAL that we can manipulate at append time.
-    class FailAppendFlushMarkerWAL extends FSHLog {
+    class FailAppendFlushMarkerWAL extends DefaultFSWAL {
       volatile FlushAction [] flushActions = null;
 
       public FailAppendFlushMarkerWAL(FileSystem fs, Path root, String logDir, Configuration conf)
@@ -2416,7 +2416,7 @@ public class TestHRegion {
   public void testDataInMemoryWithoutWAL() throws IOException {
     FileSystem fs = FileSystem.get(CONF);
     Path rootDir = new Path(dir + "testDataInMemoryWithoutWAL");
-    FSHLog hLog = new FSHLog(fs, rootDir, "testDataInMemoryWithoutWAL", CONF);
+    DefaultFSWAL hLog = new DefaultFSWAL(fs, rootDir, "testDataInMemoryWithoutWAL", CONF);
     hLog.init();
     // This chunk creation is done throughout the code base. Do we want to move it into core?
     // It is missing from this test. W/o it we NPE.

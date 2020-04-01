@@ -36,8 +36,8 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.Waiter;
 import org.apache.hadoop.hbase.Waiter.ExplainingPredicate;
-import org.apache.hadoop.hbase.io.HeapSize;
-import org.apache.hadoop.hbase.io.hfile.LruBlockCache.EvictionThread;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
+import org.apache.hadoop.hbase.io.hfile.LruBlockCache.EvictionThreadWrapper;
 import org.apache.hadoop.hbase.nio.ByteBuff;
 import org.apache.hadoop.hbase.testclassification.IOTests;
 import org.apache.hadoop.hbase.testclassification.SmallTests;
@@ -75,7 +75,7 @@ public class TestLruBlockCache {
 
     final Configuration conf = HBaseConfiguration.create();
     final LruBlockCache cache = new LruBlockCache(maxSize, blockSize);
-    EvictionThread evictionThread = cache.getEvictionThread();
+    EvictionThreadWrapper evictionThread = cache.getEvictionThread();
     assertTrue(evictionThread != null);
     while (!evictionThread.isEnteringRun()) {
       Thread.sleep(1);
@@ -125,7 +125,7 @@ public class TestLruBlockCache {
     assertTrue("calculateBlockSize appears broken.", blockSize * numBlocks <= maxSize);
 
     LruBlockCache cache = new LruBlockCache(maxSize,blockSize);
-    EvictionThread evictionThread = cache.getEvictionThread();
+    EvictionThreadWrapper evictionThread = cache.getEvictionThread();
     assertTrue(evictionThread != null);
 
     CachedItem[] blocks = generateFixedBlocks(numBlocks + 1, blockSize, "block");
@@ -195,7 +195,7 @@ public class TestLruBlockCache {
 
     // Check if all blocks are properly cached and retrieved
     for (CachedItem block : blocks) {
-      HeapSize buf = cache.getBlock(block.cacheKey, true, false, true);
+      HeapSizeEstimater buf = cache.getBlock(block.cacheKey, true, false, true);
       assertTrue(buf != null);
       assertEquals(buf.heapSize(), block.heapSize());
     }
@@ -214,7 +214,7 @@ public class TestLruBlockCache {
 
     // Check if all blocks are properly cached and retrieved
     for (CachedItem block : blocks) {
-      HeapSize buf = cache.getBlock(block.cacheKey, true, false, true);
+      HeapSizeEstimater buf = cache.getBlock(block.cacheKey, true, false, true);
       assertTrue(buf != null);
       assertEquals(buf.heapSize(), block.heapSize());
     }

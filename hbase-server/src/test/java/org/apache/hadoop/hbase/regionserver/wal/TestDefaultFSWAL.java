@@ -61,11 +61,11 @@ import org.junit.rules.TestName;
  * Provides FSHLog test cases.
  */
 @Category({ RegionServerTests.class, MediumTests.class })
-public class TestFSHLog extends AbstractTestFSWAL {
+public class TestDefaultFSWAL extends AbstractTestFSWAL {
 
   @ClassRule
   public static final HBaseClassTestRule CLASS_RULE =
-      HBaseClassTestRule.forClass(TestFSHLog.class);
+      HBaseClassTestRule.forClass(TestDefaultFSWAL.class);
 
   @Rule
   public TestName name = new TestName();
@@ -74,8 +74,8 @@ public class TestFSHLog extends AbstractTestFSWAL {
   protected AbstractFSWAL<?> newWAL(FileSystem fs, Path rootDir, String walDir, String archiveDir,
       Configuration conf, List<WALActionsListener> listeners, boolean failIfWALExists,
       String prefix, String suffix) throws IOException {
-    FSHLog wal =
-      new FSHLog(fs, rootDir, walDir, archiveDir, conf, listeners, failIfWALExists, prefix, suffix);
+    DefaultFSWAL wal =
+      new DefaultFSWAL(fs, rootDir, walDir, archiveDir, conf, listeners, failIfWALExists, prefix, suffix);
     wal.init();
     return wal;
   }
@@ -85,7 +85,8 @@ public class TestFSHLog extends AbstractTestFSWAL {
       String archiveDir, Configuration conf, List<WALActionsListener> listeners,
       boolean failIfWALExists, String prefix, String suffix, final Runnable action)
       throws IOException {
-    FSHLog wal = new FSHLog(fs, rootDir, walDir, archiveDir, conf, listeners, failIfWALExists,
+    DefaultFSWAL
+      wal = new DefaultFSWAL(fs, rootDir, walDir, archiveDir, conf, listeners, failIfWALExists,
         prefix, suffix) {
 
       @Override
@@ -102,16 +103,16 @@ public class TestFSHLog extends AbstractTestFSWAL {
   public void testSyncRunnerIndexOverflow() throws IOException, NoSuchFieldException,
       SecurityException, IllegalArgumentException, IllegalAccessException {
     final String name = this.name.getMethodName();
-    FSHLog log = new FSHLog(FS, FSUtils.getRootDir(CONF), name, HConstants.HREGION_OLDLOGDIR_NAME,
+    DefaultFSWAL log = new DefaultFSWAL(FS, FSUtils.getRootDir(CONF), name, HConstants.HREGION_OLDLOGDIR_NAME,
       CONF, null, true, null, null);
     log.init();
     try {
-      Field ringBufferEventHandlerField = FSHLog.class.getDeclaredField("ringBufferEventHandler");
+      Field ringBufferEventHandlerField = DefaultFSWAL.class.getDeclaredField("ringBufferEventHandler");
       ringBufferEventHandlerField.setAccessible(true);
-      FSHLog.RingBufferEventHandler ringBufferEventHandler =
-          (FSHLog.RingBufferEventHandler) ringBufferEventHandlerField.get(log);
+      DefaultFSWAL.RingBufferEventHandler ringBufferEventHandler =
+          (DefaultFSWAL.RingBufferEventHandler) ringBufferEventHandlerField.get(log);
       Field syncRunnerIndexField =
-          FSHLog.RingBufferEventHandler.class.getDeclaredField("syncRunnerIndex");
+          DefaultFSWAL.RingBufferEventHandler.class.getDeclaredField("syncRunnerIndex");
       syncRunnerIndexField.setAccessible(true);
       syncRunnerIndexField.set(ringBufferEventHandler, Integer.MAX_VALUE - 1);
       TableDescriptor htd =
@@ -144,8 +145,8 @@ public class TestFSHLog extends AbstractTestFSWAL {
     final CountDownLatch flushFinished = new CountDownLatch(1);
     final CountDownLatch putFinished = new CountDownLatch(1);
 
-    try (FSHLog log =
-        new FSHLog(FS, FSUtils.getRootDir(CONF), name, HConstants.HREGION_OLDLOGDIR_NAME, CONF,
+    try (DefaultFSWAL log =
+        new DefaultFSWAL(FS, FSUtils.getRootDir(CONF), name, HConstants.HREGION_OLDLOGDIR_NAME, CONF,
             null, true, null, null)) {
       log.init();
       log.registerWALActionsListener(new WALActionsListener() {

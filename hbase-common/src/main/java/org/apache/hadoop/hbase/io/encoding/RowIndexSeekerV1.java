@@ -26,8 +26,8 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.NoTagsByteBufferKeyValue;
 import org.apache.hadoop.hbase.PrivateCellUtil;
-import org.apache.hadoop.hbase.SizeCachedKeyValue;
-import org.apache.hadoop.hbase.SizeCachedNoTagsKeyValue;
+import org.apache.hadoop.hbase.SizeEstimaterCachedKeyValue;
+import org.apache.hadoop.hbase.SizeEstimaterCachedNoTagsKeyValue;
 import org.apache.hadoop.hbase.io.encoding.AbstractDataBlockEncoder.AbstractEncodedSeeker;
 import org.apache.hadoop.hbase.nio.ByteBuff;
 import org.apache.hadoop.hbase.util.ByteBufferUtils;
@@ -359,10 +359,10 @@ public class RowIndexSeekerV1 extends AbstractEncodedSeeker {
         // TODO : reduce the varieties of KV here. Check if based on a boolean
         // we can handle the 'no tags' case.
         if (tagsLength > 0) {
-          ret = new SizeCachedKeyValue(currentBuffer.array(),
+          ret = new SizeEstimaterCachedKeyValue(currentBuffer.array(),
               currentBuffer.arrayOffset() + startOffset, cellBufSize, seqId);
         } else {
-          ret = new SizeCachedNoTagsKeyValue(currentBuffer.array(),
+          ret = new SizeEstimaterCachedNoTagsKeyValue(currentBuffer.array(),
               currentBuffer.arrayOffset() + startOffset, cellBufSize, seqId);
         }
       } else {
@@ -374,10 +374,10 @@ public class RowIndexSeekerV1 extends AbstractEncodedSeeker {
                   : new NoTagsByteBufferKeyValue(buf, tmpPair.getSecond(), cellBufSize, seqId);
         } else {
           if (tagsLength > 0) {
-            ret = new SizeCachedKeyValue(buf.array(), buf.arrayOffset()
+            ret = new SizeEstimaterCachedKeyValue(buf.array(), buf.arrayOffset()
                 + tmpPair.getSecond(), cellBufSize, seqId);
           } else {
-            ret = new SizeCachedNoTagsKeyValue(buf.array(), buf.arrayOffset()
+            ret = new SizeEstimaterCachedNoTagsKeyValue(buf.array(), buf.arrayOffset()
                 + tmpPair.getSecond(), cellBufSize, seqId);
           }
         }

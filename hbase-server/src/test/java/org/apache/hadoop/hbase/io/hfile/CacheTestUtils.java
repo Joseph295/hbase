@@ -37,7 +37,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.MultithreadedTestUtil;
 import org.apache.hadoop.hbase.MultithreadedTestUtil.TestThread;
 import org.apache.hadoop.hbase.io.ByteBuffAllocator;
-import org.apache.hadoop.hbase.io.HeapSize;
+import org.apache.hadoop.hbase.io.HeapSizeEstimater;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.io.hfile.bucket.BucketCache;
 import org.apache.hadoop.hbase.nio.ByteBuff;
@@ -57,16 +57,16 @@ public class CacheTestUtils {
   public static void testHeapSizeChanges(final BlockCache toBeTested,
       final int blockSize) {
     HFileBlockPair[] blocks = generateHFileBlocks(blockSize, 1);
-    long heapSize = ((HeapSize) toBeTested).heapSize();
+    long heapSize = ((HeapSizeEstimater) toBeTested).heapSize();
     toBeTested.cacheBlock(blocks[0].blockName, blocks[0].block);
 
     /*When we cache something HeapSize should always increase */
-    assertTrue(heapSize < ((HeapSize) toBeTested).heapSize());
+    assertTrue(heapSize < ((HeapSizeEstimater) toBeTested).heapSize());
 
     toBeTested.evictBlock(blocks[0].blockName);
 
     /*Post eviction, heapsize should be the same */
-    assertEquals(heapSize, ((HeapSize) toBeTested).heapSize());
+    assertEquals(heapSize, ((HeapSizeEstimater) toBeTested).heapSize());
   }
 
   public static void testCacheMultiThreaded(final BlockCache toBeTested,

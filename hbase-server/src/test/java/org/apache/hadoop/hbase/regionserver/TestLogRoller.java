@@ -25,7 +25,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseClassTestRule;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.regionserver.wal.FSHLog;
+import org.apache.hadoop.hbase.regionserver.wal.DefaultFSWAL;
 import org.apache.hadoop.hbase.testclassification.MediumTests;
 import org.apache.hadoop.hbase.testclassification.RegionServerTests;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -67,13 +67,13 @@ public class TestLogRoller {
     Configuration conf = rs.getConfiguration();
     LogRoller logRoller = TEST_UTIL.getMiniHBaseCluster().getRegionServer(0).getWalRoller();
     int originalSize = logRoller.getWalNeedsRoll().size();
-    FSHLog wal1 = new FSHLog(rs.getWALFileSystem(), rs.getWALRootDir(),
+    DefaultFSWAL wal1 = new DefaultFSWAL(rs.getWALFileSystem(), rs.getWALRootDir(),
         AbstractFSWALProvider.getWALDirectoryName(rs.getServerName().getServerName()), conf);
     logRoller.addWAL(wal1);
-    FSHLog wal2 = new FSHLog(rs.getWALFileSystem(), rs.getWALRootDir(),
+    DefaultFSWAL wal2 = new DefaultFSWAL(rs.getWALFileSystem(), rs.getWALRootDir(),
       AbstractFSWALProvider.getWALDirectoryName(rs.getServerName().getServerName()), conf);
     logRoller.addWAL(wal2);
-    FSHLog wal3 = new FSHLog(rs.getWALFileSystem(), rs.getWALRootDir(),
+    DefaultFSWAL wal3 = new DefaultFSWAL(rs.getWALFileSystem(), rs.getWALRootDir(),
       AbstractFSWALProvider.getWALDirectoryName(rs.getServerName().getServerName()), conf);
     logRoller.addWAL(wal3);
 

@@ -35,7 +35,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionConfiguration;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
 import org.apache.hadoop.hbase.regionserver.compactions.RatioBasedCompactionPolicy;
-import org.apache.hadoop.hbase.regionserver.wal.FSHLog;
+import org.apache.hadoop.hbase.regionserver.wal.DefaultFSWAL;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.junit.After;
@@ -60,7 +60,7 @@ public class TestCompactionPolicy {
   protected static final long minSize = 10;
   protected static final long maxSize = 2100;
 
-  private FSHLog hlog;
+  private DefaultFSWAL hlog;
   private HRegion region;
 
   @Before
@@ -99,7 +99,7 @@ public class TestCompactionPolicy {
     htd.addFamily(hcd);
     HRegionInfo info = new HRegionInfo(htd.getTableName(), null, null, false);
 
-    hlog = new FSHLog(fs, basedir, logName, conf);
+    hlog = new DefaultFSWAL(fs, basedir, logName, conf);
     hlog.init();
     ChunkCreator.initialize(MemStoreLABImpl.CHUNK_SIZE_DEFAULT, false, 0, 0, 0, null);
     region = HRegion.createHRegion(info, basedir, conf, htd, hlog);

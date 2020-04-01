@@ -34,7 +34,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.regionserver.wal.FSHLog;
+import org.apache.hadoop.hbase.regionserver.wal.DefaultFSWAL;
 import org.apache.hadoop.hbase.regionserver.wal.FailedLogCloseException;
 import org.apache.hadoop.hbase.testclassification.SmallTests;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -102,7 +102,7 @@ public class TestFailedAppendAndSync {
   }
 
   // Dodgy WAL. Will throw exceptions when flags set.
-  class DodgyFSLog extends FSHLog {
+  class DodgyFSLog extends DefaultFSWAL {
     volatile boolean throwSyncException = false;
     volatile boolean throwAppendException = false;
     final AtomicLong rolls = new AtomicLong(0);

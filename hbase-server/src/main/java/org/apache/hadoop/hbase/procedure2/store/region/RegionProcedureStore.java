@@ -49,12 +49,8 @@ import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
 import org.apache.hadoop.hbase.log.HBaseMarkers;
 import org.apache.hadoop.hbase.master.HMaster;
-import org.apache.hadoop.hbase.master.assignment.AssignProcedure;
-import org.apache.hadoop.hbase.master.assignment.MoveRegionProcedure;
-import org.apache.hadoop.hbase.master.assignment.UnassignProcedure;
 import org.apache.hadoop.hbase.master.cleaner.DirScanPool;
 import org.apache.hadoop.hbase.master.cleaner.HFileCleaner;
-import org.apache.hadoop.hbase.master.procedure.RecoverMetaProcedure;
 import org.apache.hadoop.hbase.master.procedure.ServerCrashProcedure;
 import org.apache.hadoop.hbase.procedure2.Procedure;
 import org.apache.hadoop.hbase.procedure2.ProcedureUtil;
@@ -325,8 +321,7 @@ public class RegionProcedureStore extends ProcedureStoreBase {
 
   @SuppressWarnings("deprecation")
   private static final ImmutableSet<Class<?>> UNSUPPORTED_PROCEDURES =
-    ImmutableSet.of(RecoverMetaProcedure.class, AssignProcedure.class, UnassignProcedure.class,
-      MoveRegionProcedure.class);
+    ImmutableSet.of();
 
   /**
    * In HBASE-20811, we have introduced a new TRSP to assign/unassign/move regions, and it is

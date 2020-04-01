@@ -45,7 +45,7 @@ import org.apache.hadoop.hbase.master.SplitLogManager;
 import org.apache.hadoop.hbase.monitoring.MonitoredTask;
 import org.apache.hadoop.hbase.monitoring.TaskMonitor;
 import org.apache.hadoop.hbase.procedure2.util.StringUtils;
-import org.apache.hadoop.hbase.regionserver.LastSequenceId;
+import org.apache.hadoop.hbase.regionserver.LastSequenceIdGetter;
 import org.apache.hadoop.hbase.regionserver.wal.WALCellCodec;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.CancelableProgressable;
@@ -94,7 +94,7 @@ public class WALSplitter {
   private MonitoredTask status;
 
   // For checking the latest flushed sequence id
-  protected final LastSequenceId sequenceIdChecker;
+  protected final LastSequenceIdGetter sequenceIdChecker;
 
   // Map encodedRegionName -> lastFlushedSequenceId
   protected Map<String, Long> lastFlushedSequenceIds = new ConcurrentHashMap<>();
@@ -114,7 +114,7 @@ public class WALSplitter {
 
   @VisibleForTesting
   WALSplitter(final WALFactory factory, Configuration conf, Path walDir, FileSystem walFS,
-    LastSequenceId idChecker, SplitLogWorkerCoordination splitLogWorkerCoordination) {
+              LastSequenceIdGetter idChecker, SplitLogWorkerCoordination splitLogWorkerCoordination) {
     this.conf = HBaseConfiguration.create(conf);
     String codecClassName =
         conf.get(WALCellCodec.WAL_CELL_CODEC_CLASS_KEY, WALCellCodec.class.getName());
@@ -174,7 +174,7 @@ public class WALSplitter {
    * @return false if it is interrupted by the progress-able.
    */
   public static boolean splitLogFile(Path walDir, FileStatus logfile, FileSystem walFS,
-      Configuration conf, CancelableProgressable reporter, LastSequenceId idChecker,
+      Configuration conf, CancelableProgressable reporter, LastSequenceIdGetter idChecker,
       SplitLogWorkerCoordination splitLogWorkerCoordination, final WALFactory factory)
       throws IOException {
     WALSplitter s = new WALSplitter(factory, conf, walDir, walFS, idChecker,

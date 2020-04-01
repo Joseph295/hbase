@@ -321,7 +321,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
   private final PriorityFunction priority;
 
   private ScannerIdGenerator scannerIdGenerator;
-  private final ConcurrentMap<String, RegionScannerHolder> scanners = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, RegionScannerHolder> validScanners = new ConcurrentHashMap<>();
   // Hold the name of a closed scanner for a while. This is used to keep compatible for old clients
   // which may send next or close request to a region scanner which has already been exhausted. The
   // entries will be removed automatically after scannerLeaseTimeoutPeriod.
@@ -398,7 +398,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
       this.shipper.shipped();
       // We're done. On way out re-add the above removed lease. The lease was temp removed for this
       // Rpc call and we are at end of the call now. Time to add it back.
-      if (scanners.containsKey(scannerName)) {
+      if (validScanners.containsKey(scannerName)) {
         if (lease != null) {
           regionServer.getLeaseManager().addLease(lease);
         }
@@ -476,7 +476,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
 
     @Override
     public void leaseExpired() {
-      RegionScannerHolder rsh = scanners.remove(this.scannerName);
+      RegionScannerHolder rsh = validScanners.remove(this.scannerName);
       if (rsh != null) {
         RegionScanner s = rsh.s;
         LOG.info("Scanner " + this.scannerName + " lease expired on region "
@@ -1173,7 +1173,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
   private void closeAllScanners() {
     // Close any outstanding scanners. Means they'll get an UnknownScanner
     // exception next time they come in.
-    for (Map.Entry<String, RegionScannerHolder> e : scanners.entrySet()) {
+    for (Map.Entry<String, RegionScannerHolder> e : validScanners.entrySet()) {
       try {
         e.getValue().s.close();
       } catch (IOException ioe) {
@@ -1337,13 +1337,13 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
 
   @VisibleForTesting
   public int getScannersCount() {
-    return scanners.size();
+    return validScanners.size();
   }
 
   public
   RegionScanner getScanner(long scannerId) {
     String scannerIdString = Long.toString(scannerId);
-    RegionScannerHolder scannerHolder = scanners.get(scannerIdString);
+    RegionScannerHolder scannerHolder = validScanners.get(scannerIdString);
     if (scannerHolder != null) {
       return scannerHolder.s;
     }
@@ -1367,7 +1367,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
    */
   long getScannerVirtualTime(long scannerId) {
     String scannerIdString = Long.toString(scannerId);
-    RegionScannerHolder scannerHolder = scanners.get(scannerIdString);
+    RegionScannerHolder scannerHolder = validScanners.get(scannerIdString);
     if (scannerHolder != null) {
       return scannerHolder.getNextCallSeq();
     }
@@ -1428,7 +1428,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
     }
     RegionScannerHolder rsh =
         new RegionScannerHolder(scannerName, s, r, closeCallback, shippedCallback, needCursor);
-    RegionScannerHolder existing = scanners.putIfAbsent(scannerName, rsh);
+    RegionScannerHolder existing = validScanners.putIfAbsent(scannerName, rsh);
     assert existing == null : "scannerId must be unique within regionserver's whole lifecycle! " +
       scannerName;
     return rsh;
@@ -3076,7 +3076,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
 
   private RegionScannerHolder getRegionScanner(ScanRequest request) throws IOException {
     String scannerName = Long.toString(request.getScannerId());
-    RegionScannerHolder rsh = scanners.get(scannerName);
+    RegionScannerHolder rsh = validScanners.get(scannerName);
     if (rsh == null) {
       // just ignore the next or close request if scanner does not exists.
       if (closedScanners.getIfPresent(scannerName) != null) {
@@ -3099,7 +3099,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
       String msg = "Region has changed on the scanner " + scannerName + ": regionName="
           + hri.getRegionNameAsString() + ", scannerRegionName=" + rsh.r;
       LOG.warn(msg + ", closing...");
-      scanners.remove(scannerName);
+      validScanners.remove(scannerName);
       try {
         rsh.s.close();
       } catch (IOException e) {
@@ -3653,7 +3653,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
         return;
       }
     }
-    RegionScannerHolder rsh = scanners.remove(scannerName);
+    RegionScannerHolder rsh = validScanners.remove(scannerName);
     if (rsh != null) {
       if (context != null) {
         context.setCallBack(rsh.closeCallBack);

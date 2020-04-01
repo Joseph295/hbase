@@ -86,7 +86,7 @@ public class SplitLogWorker implements Runnable {
   }
 
   public SplitLogWorker(Configuration conf, RegionServerServices server,
-      LastSequenceId sequenceIdChecker, WALFactory factory) {
+                        LastSequenceIdGetter sequenceIdChecker, WALFactory factory) {
     this(server, conf, server, (f, p) -> splitLog(f, p, conf, server, sequenceIdChecker, factory));
   }
 
@@ -153,7 +153,7 @@ public class SplitLogWorker implements Runnable {
   }
 
   static Status splitLog(String name, CancelableProgressable p, Configuration conf,
-      RegionServerServices server, LastSequenceId sequenceIdChecker, WALFactory factory) {
+                         RegionServerServices server, LastSequenceIdGetter sequenceIdChecker, WALFactory factory) {
     Path walDir;
     FileSystem fs;
     try {

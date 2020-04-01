@@ -25,7 +25,7 @@ import org.apache.hadoop.hbase.shaded.protobuf.generated.ClusterStatusProtos.Reg
  * Last flushed sequence Ids for the regions and their stores on region server
  */
 @InterfaceAudience.Private
-public interface LastSequenceId {
+public interface LastSequenceIdGetter {
 
   /**
    * @param encodedRegionName Encoded region name

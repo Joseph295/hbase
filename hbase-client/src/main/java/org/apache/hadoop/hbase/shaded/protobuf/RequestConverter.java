@@ -35,7 +35,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Action;
+import org.apache.hadoop.hbase.client.InternalSingleAction;
 import org.apache.hadoop.hbase.client.Append;
 import org.apache.hadoop.hbase.client.ColumnFamilyDescriptor;
 import org.apache.hadoop.hbase.client.Delete;
@@ -589,7 +589,7 @@ public final class RequestConverter {
    * @throws IOException
    */
   public static void buildNoDataRegionActions(final byte[] regionName,
-      final Iterable<Action> actions, final List<CellScannable> cells,
+      final Iterable<InternalSingleAction> actions, final List<CellScannable> cells,
       final MultiRequest.Builder multiRequestBuilder,
       final RegionAction.Builder regionActionBuilder,
       final ClientProtos.Action.Builder actionBuilder,
@@ -601,9 +601,9 @@ public final class RequestConverter {
     ClientProtos.CoprocessorServiceCall.Builder cpBuilder = null;
     RegionAction.Builder rowMutationsRegionActionBuilder = null;
     boolean hasNonce = false;
-    List<Action> rowMutationsList = new ArrayList<>();
+    List<InternalSingleAction> rowMutationsList = new ArrayList<>();
 
-    for (Action action: actions) {
+    for (InternalSingleAction action: actions) {
       Row row = action.getAction();
       actionBuilder.clear();
       actionBuilder.setIndex(action.getOriginalIndex());
@@ -676,7 +676,7 @@ public final class RequestConverter {
     // RowMutations is a set of Puts and/or Deletes all to be applied atomically
     // on the one row. We do separate RegionAction for each RowMutations.
     // We maintain a map to keep track of this RegionAction and the original Action index.
-    for (Action action : rowMutationsList) {
+    for (InternalSingleAction action : rowMutationsList) {
       RowMutations rms = (RowMutations) action.getAction();
       if (rowMutationsRegionActionBuilder == null) {
         rowMutationsRegionActionBuilder = ClientProtos.RegionAction.newBuilder();

@@ -94,13 +94,13 @@ class AsyncBatchRpcRetryingCaller<T> {
 
   private final TableName tableName;
 
-  private final List<Action> actions;
+  private final List<InternalSingleAction> actions;
 
   private final List<CompletableFuture<T>> futures;
 
-  private final IdentityHashMap<Action, CompletableFuture<T>> action2Future;
+  private final IdentityHashMap<InternalSingleAction, CompletableFuture<T>> action2Future;
 
-  private final IdentityHashMap<Action, List<ThrowableWithExtraContext>> action2Errors;
+  private final IdentityHashMap<InternalSingleAction, List<ThrowableWithExtraContext>> action2Errors;
 
   private final long pauseNs;
 
@@ -122,7 +122,7 @@ class AsyncBatchRpcRetryingCaller<T> {
 
     public final HRegionLocation loc;
 
-    public final ConcurrentLinkedQueue<Action> actions = new ConcurrentLinkedQueue<>();
+    public final ConcurrentLinkedQueue<InternalSingleAction> actions = new ConcurrentLinkedQueue<>();
 
     public RegionRequest(HRegionLocation loc) {
       this.loc = loc;
@@ -134,7 +134,7 @@ class AsyncBatchRpcRetryingCaller<T> {
     public final ConcurrentMap<byte[], RegionRequest> actionsByRegion =
       new ConcurrentSkipListMap<>(Bytes.BYTES_COMPARATOR);
 
-    public void addAction(HRegionLocation loc, Action action) {
+    public void addAction(HRegionLocation loc, InternalSingleAction action) {
       computeIfAbsent(actionsByRegion, loc.getRegion().getRegionName(),
         () -> new RegionRequest(loc)).actions.add(action);
     }
@@ -145,7 +145,7 @@ class AsyncBatchRpcRetryingCaller<T> {
 
     public int getPriority() {
       return actionsByRegion.values().stream().flatMap(rr -> rr.actions.stream())
-        .mapToInt(Action::getPriority).max().orElse(HConstants.PRIORITY_UNSET);
+        .mapToInt(InternalSingleAction::getPriority).max().orElse(HConstants.PRIORITY_UNSET);
     }
   }
 
@@ -166,11 +166,11 @@ class AsyncBatchRpcRetryingCaller<T> {
     this.action2Future = new IdentityHashMap<>(actions.size());
     for (int i = 0, n = actions.size(); i < n; i++) {
       Row rawAction = actions.get(i);
-      Action action;
+      InternalSingleAction action;
       if (rawAction instanceof OperationWithAttributes) {
-        action = new Action(rawAction, i, ((OperationWithAttributes) rawAction).getPriority());
+        action = new InternalSingleAction(rawAction, i, ((OperationWithAttributes) rawAction).getPriority());
       } else {
-        action = new Action(rawAction, i);
+        action = new InternalSingleAction(rawAction, i);
       }
       if (rawAction instanceof Append || rawAction instanceof Increment) {
         action.setNonce(conn.getNonceGenerator().newNonce());
@@ -188,7 +188,7 @@ class AsyncBatchRpcRetryingCaller<T> {
     return operationTimeoutNs - (System.nanoTime() - startNs);
   }
 
-  private List<ThrowableWithExtraContext> removeErrors(Action action) {
+  private List<ThrowableWithExtraContext> removeErrors(InternalSingleAction action) {
     synchronized (action2Errors) {
       return action2Errors.remove(action);
     }
@@ -209,7 +209,7 @@ class AsyncBatchRpcRetryingCaller<T> {
     return serverName != null ? serverName.getServerName() : "";
   }
 
-  private void addError(Action action, Throwable error, ServerName serverName) {
+  private void addError(InternalSingleAction action, Throwable error, ServerName serverName) {
     List<ThrowableWithExtraContext> errors;
     synchronized (action2Errors) {
       errors = action2Errors.computeIfAbsent(action, k -> new ArrayList<>());
@@ -218,11 +218,11 @@ class AsyncBatchRpcRetryingCaller<T> {
       getExtraContextForError(serverName)));
   }
 
-  private void addError(Iterable<Action> actions, Throwable error, ServerName serverName) {
+  private void addError(Iterable<InternalSingleAction> actions, Throwable error, ServerName serverName) {
     actions.forEach(action -> addError(action, error, serverName));
   }
 
-  private void failOne(Action action, int tries, Throwable error, long currentTime, String extras) {
+  private void failOne(InternalSingleAction action, int tries, Throwable error, long currentTime, String extras) {
     CompletableFuture<T> future = action2Future.get(action);
     if (future.isDone()) {
       return;
@@ -238,13 +238,13 @@ class AsyncBatchRpcRetryingCaller<T> {
     future.completeExceptionally(new RetriesExhaustedException(tries - 1, errors));
   }
 
-  private void failAll(Stream<Action> actions, int tries, Throwable error, ServerName serverName) {
+  private void failAll(Stream<InternalSingleAction> actions, int tries, Throwable error, ServerName serverName) {
     long currentTime = EnvironmentEdgeManager.currentTime();
     String extras = getExtraContextForError(serverName);
     actions.forEach(action -> failOne(action, tries, error, currentTime, extras));
   }
 
-  private void failAll(Stream<Action> actions, int tries) {
+  private void failAll(Stream<InternalSingleAction> actions, int tries) {
     actions.forEach(action -> {
       CompletableFuture<T> future = action2Future.get(action);
       if (future.isDone()) {
@@ -277,8 +277,8 @@ class AsyncBatchRpcRetryingCaller<T> {
   }
 
   @SuppressWarnings("unchecked")
-  private void onComplete(Action action, RegionRequest regionReq, int tries, ServerName serverName,
-      RegionResult regionResult, List<Action> failedActions, Throwable regionException,
+  private void onComplete(InternalSingleAction action, RegionRequest regionReq, int tries, ServerName serverName,
+      RegionResult regionResult, List<InternalSingleAction> failedActions, Throwable regionException,
       MutableBoolean retryImmediately) {
     Object result = regionResult.result.getOrDefault(action.getOriginalIndex(), regionException);
     if (result == null) {
@@ -309,7 +309,7 @@ class AsyncBatchRpcRetryingCaller<T> {
       ServerName serverName, MultiResponse resp) {
     ConnectionUtils.updateStats(conn.getStatisticsTracker(), conn.getConnectionMetrics(),
       serverName, resp);
-    List<Action> failedActions = new ArrayList<>();
+    List<InternalSingleAction> failedActions = new ArrayList<>();
     MutableBoolean retryImmediately = new MutableBoolean(false);
     actionsByRegion.forEach((rn, regionReq) -> {
       RegionResult regionResult = resp.getResults().get(rn);
@@ -442,14 +442,14 @@ class AsyncBatchRpcRetryingCaller<T> {
         serverName);
       return;
     }
-    List<Action> copiedActions = actionsByRegion.values().stream().flatMap(r -> r.actions.stream())
+    List<InternalSingleAction> copiedActions = actionsByRegion.values().stream().flatMap(r -> r.actions.stream())
       .collect(Collectors.toList());
     addError(copiedActions, error, serverName);
     tryResubmit(copiedActions.stream(), tries, error instanceof RetryImmediatelyException,
       error instanceof CallQueueTooBigException);
   }
 
-  private void tryResubmit(Stream<Action> actions, int tries, boolean immediately,
+  private void tryResubmit(Stream<InternalSingleAction> actions, int tries, boolean immediately,
       boolean isCallQueueTooBig) {
     if (immediately) {
       groupAndSend(actions, tries);
@@ -470,7 +470,7 @@ class AsyncBatchRpcRetryingCaller<T> {
     retryTimer.newTimeout(t -> groupAndSend(actions, tries + 1), delayNs, TimeUnit.NANOSECONDS);
   }
 
-  private void groupAndSend(Stream<Action> actions, int tries) {
+  private void groupAndSend(Stream<InternalSingleAction> actions, int tries) {
     long locateTimeoutNs;
     if (operationTimeoutNs > 0) {
       locateTimeoutNs = remainingTimeNs();
@@ -482,7 +482,7 @@ class AsyncBatchRpcRetryingCaller<T> {
       locateTimeoutNs = -1L;
     }
     ConcurrentMap<ServerName, ServerRequest> actionsByServer = new ConcurrentHashMap<>();
-    ConcurrentLinkedQueue<Action> locateFailed = new ConcurrentLinkedQueue<>();
+    ConcurrentLinkedQueue<InternalSingleAction> locateFailed = new ConcurrentLinkedQueue<>();
     addListener(CompletableFuture.allOf(actions
       .map(action -> conn.getLocator().getRegionLocation(tableName, action.getAction().getRow(),
         RegionLocateType.CURRENT, locateTimeoutNs).whenComplete((loc, error) -> {

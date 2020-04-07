@@ -37,7 +37,7 @@ public final class MultiAction {
   // TODO: This class should not be visible outside of the client package.
 
   // map of regions to lists of puts/gets/deletes for that region.
-  protected Map<byte[], List<Action>> actions = new TreeMap<>(Bytes.BYTES_COMPARATOR);
+  protected Map<byte[], List<InternalSingleAction>> actions = new TreeMap<>(Bytes.BYTES_COMPARATOR);
 
   private long nonceGroup = HConstants.NO_NONCE;
 
@@ -66,7 +66,7 @@ public final class MultiAction {
    * @param regionName
    * @param a
    */
-  public void add(byte[] regionName, Action a) {
+  public void add(byte[] regionName, InternalSingleAction a) {
     add(regionName, Collections.singletonList(a));
   }
 
@@ -78,8 +78,8 @@ public final class MultiAction {
    * @param regionName
    * @param actionList list of actions to add for the region
    */
-  public void add(byte[] regionName, List<Action> actionList){
-    List<Action> rsActions = actions.get(regionName);
+  public void add(byte[] regionName, List<InternalSingleAction> actionList){
+    List<InternalSingleAction> rsActions = actions.get(regionName);
     if (rsActions == null) {
       rsActions = new ArrayList<>(actionList.size());
       actions.put(regionName, rsActions);
@@ -105,7 +105,7 @@ public final class MultiAction {
 
   // returns the max priority of all the actions
   public int getPriority() {
-    Optional<Action> result = actions.values().stream().flatMap(List::stream)
+    Optional<InternalSingleAction> result = actions.values().stream().flatMap(List::stream)
         .max((action1, action2) -> Math.max(action1.getPriority(), action2.getPriority()));
     return result.isPresent() ? result.get().getPriority() : HConstants.PRIORITY_UNSET;
   }

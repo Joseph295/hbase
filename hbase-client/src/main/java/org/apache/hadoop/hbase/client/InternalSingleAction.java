@@ -27,18 +27,18 @@ import org.apache.yetus.audience.InterfaceAudience;
  * the index from the original request.
  */
 @InterfaceAudience.Private
-public class Action implements Comparable<Action> {
+public class InternalSingleAction implements Comparable<InternalSingleAction> {
   private final Row action;
   private final int originalIndex;
   private long nonce = HConstants.NO_NONCE;
   private int replicaId = RegionReplicaUtil.DEFAULT_REPLICA_ID;
   private int priority;
 
-  public Action(Row action, int originalIndex) {
+  public InternalSingleAction(Row action, int originalIndex) {
     this(action, originalIndex, HConstants.PRIORITY_UNSET);
   }
 
-  public Action(Row action, int originalIndex, int priority) {
+  public InternalSingleAction(Row action, int originalIndex, int priority) {
     this.action = action;
     this.originalIndex = originalIndex;
     this.priority = priority;
@@ -49,7 +49,7 @@ public class Action implements Comparable<Action> {
    * @param action Original action.
    * @param replicaId Replica id for the new action.
    */
-  public Action(Action action, int replicaId) {
+  public InternalSingleAction(InternalSingleAction action, int replicaId) {
     this.action = action.action;
     this.nonce = action.nonce;
     this.originalIndex = action.originalIndex;
@@ -79,7 +79,7 @@ public class Action implements Comparable<Action> {
   public int getPriority() { return priority; }
 
   @Override
-  public int compareTo(Action other) {
+  public int compareTo(InternalSingleAction other) {
     return action.compareTo(other.getAction());
   }
 
@@ -91,8 +91,8 @@ public class Action implements Comparable<Action> {
   @Override
   public boolean equals(Object obj) {
     if (this == obj) return true;
-    if (obj instanceof Action) {
-      return compareTo((Action) obj) == 0;
+    if (obj instanceof InternalSingleAction) {
+      return compareTo((InternalSingleAction) obj) == 0;
     }
     return false;
   }

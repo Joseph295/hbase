@@ -68,6 +68,8 @@ public class TestMobFileCleanerChore {
 
   private HBaseTestingUtility HTU;
 
+  private final static String tableName1 = "testMobCompactTable1";
+  private final static String tableName2 = "testMobCompactTable2";
   private final static String famStr = "f1";
   private final static byte[] fam = Bytes.toBytes(famStr);
   private final static byte[] qualifier = Bytes.toBytes("q1");
@@ -76,10 +78,12 @@ public class TestMobFileCleanerChore {
       .toBytes("01234567890123456789012345678901234567890123456789012345678901234567890123456789");
 
   private Configuration conf;
-  private TableDescriptor tableDescriptor;
+  private TableDescriptor tableDescriptor1;
+  private TableDescriptor tableDescriptor2;
   private ColumnFamilyDescriptor familyDescriptor;
   private Admin admin;
-  private Table table = null;
+  private Table table1 = null;
+  private Table table2= null;
   private MobFileCleanerChore chore;
   private long minAgeToArchive = 10000;
 
@@ -95,12 +99,15 @@ public class TestMobFileCleanerChore {
 
     HTU.startMiniCluster();
     admin = HTU.getAdmin();
-    chore = new MobFileCleanerChore();
+    chore = new MobFileCleanerChore(HTU.getMiniHBaseCluster().getMaster());
     familyDescriptor = ColumnFamilyDescriptorBuilder.newBuilder(fam).setMobEnabled(true)
       .setMobThreshold(mobLen).setMaxVersions(1).build();
-    tableDescriptor = HTU.createModifyableTableDescriptor("testMobCompactTable")
+    tableDescriptor1 = HTU.createModifyableTableDescriptor(tableName1)
       .setColumnFamily(familyDescriptor).build();
-    table = HTU.createTable(tableDescriptor, null);
+    tableDescriptor2 = HTU.createModifyableTableDescriptor(tableName2)
+      .setColumnFamily(familyDescriptor).build();
+    table1 = HTU.createTable(tableDescriptor1, null);
+    table2 = HTU.createTable(tableDescriptor2, null);
   }
 
   private void initConf() {
@@ -125,7 +132,7 @@ public class TestMobFileCleanerChore {
     conf.setLong("hbase.hfile.compaction.discharger.interval", minAgeToArchive/2);
   }
 
-  private void loadData(int start, int num) {
+  private void loadData(Table table, int start, int num) {
     try {
 
       for (int i = 0; i < num; i++) {
@@ -142,27 +149,54 @@ public class TestMobFileCleanerChore {
 
   @After
   public void tearDown() throws Exception {
-    admin.disableTable(tableDescriptor.getTableName());
-    admin.deleteTable(tableDescriptor.getTableName());
+    admin.disableTable(tableDescriptor1.getTableName());
+    admin.disableTable(tableDescriptor2.getTableName());
+
+    admin.deleteTable(tableDescriptor1.getTableName());
+    admin.deleteTable(tableDescriptor2.getTableName());
+
     HTU.shutdownMiniCluster();
+  }
+
+  @Test
+  public void testDisabledMobTableCleanerChore() throws InterruptedException, IOException {
+    loadData(table2, 0, 10);
+    loadData(table2, 10, 10);
+    loadData(table2, 20, 10);
+    long mobFileCount = getNumberOfMobFiles(conf, table2.getName(), new String(fam));
+    assertEquals(3, mobFileCount);
+    // Major compact
+    admin.majorCompact(tableDescriptor2.getTableName(), fam);
+    HTU.waitFor(600000,
+      () -> admin.getCompactionState(tableDescriptor2.getTableName()) == CompactionState.NONE);
+    mobFileCount = getNumberOfMobFiles(conf, table2.getName(), new String(fam));
+    assertEquals(4, mobFileCount);
+    familyDescriptor = ColumnFamilyDescriptorBuilder.newBuilder(fam).setMobEnabled(false)
+      .setMobThreshold(mobLen).build();
+    admin.modifyColumnFamily(TableName.valueOf(tableName2), familyDescriptor);
+    Thread.sleep(minAgeToArchive + 1000);
+    LOG.info("=========================== xjh");
+    chore.chore();
+    mobFileCount = getNumberOfMobFiles(conf, table2.getName(), new String(fam));
+    assertEquals(1, mobFileCount);
   }
 
   @Test
   public void testMobFileCleanerChore() throws InterruptedException, IOException {
 
-    loadData(0, 10);
-    loadData(10, 10);
-    loadData(20, 10);
-    long num = getNumberOfMobFiles(conf, table.getName(), new String(fam));
+    loadData(table1, 0, 10);
+    loadData(table1, 10, 10);
+    loadData(table1, 20, 10);
+    long num = getNumberOfMobFiles(conf, table1.getName(), new String(fam));
     assertEquals(3, num);
     // Major compact
-    admin.majorCompact(tableDescriptor.getTableName(), fam);
+    admin.majorCompact(tableDescriptor1.getTableName(), fam);
     // wait until compaction is complete
-    while (admin.getCompactionState(tableDescriptor.getTableName()) != CompactionState.NONE) {
+    while (admin.getCompactionState(tableDescriptor1.getTableName()) != CompactionState.NONE) {
       Thread.sleep(100);
     }
 
-    num = getNumberOfMobFiles(conf, table.getName(), new String(fam));
+    num = getNumberOfMobFiles(conf, table1.getName(), new String(fam));
     assertEquals(4, num);
     // We have guarantee, that compcated file discharger will run during this pause
     // because it has interval less than this wait time
@@ -171,9 +205,9 @@ public class TestMobFileCleanerChore {
     Thread.sleep(minAgeToArchive + 1000);
     LOG.info("Cleaning up MOB files");
     // Cleanup again
-    chore.cleanupObsoleteMobFiles(conf, table.getName());
+    chore.chore();
 
-    num = getNumberOfMobFiles(conf, table.getName(), new String(fam));
+    num = getNumberOfMobFiles(conf, table1.getName(), new String(fam));
     assertEquals(1, num);
 
     long scanned = scanTable();
@@ -186,7 +220,7 @@ public class TestMobFileCleanerChore {
     Path dir = MobUtils.getMobFamilyPath(conf, tableName, family);
     FileStatus[] stat = fs.listStatus(dir);
     for (FileStatus st : stat) {
-      LOG.debug("DDDD MOB Directory content: {} size={}", st.getPath(), st.getLen());
+      LOG.debug("MOB Directory content: {} size={}", st.getPath(), st.getLen());
     }
     LOG.debug("MOB Directory content total files: {}", stat.length);
 
@@ -198,7 +232,7 @@ public class TestMobFileCleanerChore {
     try {
 
       Result result;
-      ResultScanner scanner = table.getScanner(fam);
+      ResultScanner scanner = table1.getScanner(fam);
       long counter = 0;
       while ((result = scanner.next()) != null) {
         assertTrue(Arrays.equals(result.getValue(fam, qualifier), mobVal));

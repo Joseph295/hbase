@@ -119,7 +119,7 @@ public class MobFileCleanerChore extends ScheduledChore {
     }
     for (TableDescriptor htd : map.values()) {
       for (ColumnFamilyDescriptor hcd : htd.getColumnFamilies()) {
-        if (hcd.isMobEnabled() && hcd.getMinVersions() == 0) {
+        if (hcd.getMinVersions() == 0) {
           try {
             cleaner.cleanExpiredMobFiles(htd.getTableName().getNameAsString(), hcd);
           } catch (IOException e) {
@@ -159,14 +159,9 @@ public class MobFileCleanerChore extends ScheduledChore {
     try (final Connection conn = ConnectionFactory.createConnection(conf);
         final Admin admin = conn.getAdmin();) {
       TableDescriptor htd = admin.getDescriptor(table);
-      List<ColumnFamilyDescriptor> list = MobUtils.getMobColumnFamilies(htd);
-      if (list.size() == 0) {
-        LOG.info("Skipping non-MOB table [{}]", table);
-        return;
-      } else {
-        LOG.info("Only MOB files whose creation time older than {} will be archived, table={}",
-          maxCreationTimeToArchive, table);
-      }
+      ColumnFamilyDescriptor[] list = htd.getColumnFamilies();
+      LOG.info("Only MOB files whose creation time older than {} will be archived, table={}",
+        maxCreationTimeToArchive, table);
 
       Path rootDir = CommonFSUtils.getRootDir(conf);
       Path tableDir = CommonFSUtils.getTableDir(rootDir, table);

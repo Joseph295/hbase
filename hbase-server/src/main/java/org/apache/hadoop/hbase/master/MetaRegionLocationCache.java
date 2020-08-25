@@ -160,7 +160,6 @@ public class MetaRegionLocationCache extends ZKListener {
     if (!isValidMetaZNode(path)) {
       return;
     }
-    LOG.debug("Updating meta znode for path {}: {}", path, opType.name());
     int replicaId = watcher.getZNodePaths().getMetaReplicaIdFromPath(path);
     RetryCounter retryCounter = retryCounterFactory.create();
     HRegionLocation location = null;

@@ -108,13 +108,11 @@ public class TestMasterMetrics {
     request.setServer(ProtobufUtil.toServerName(serverName));
     long expectedRequestNumber = 10000;
 
-    MetricsMasterSource masterSource = master.getMasterMetrics().getMetricsSource();
     ClusterStatusProtos.ServerLoad sl = ClusterStatusProtos.ServerLoad.newBuilder()
       .setTotalNumberOfRequests(expectedRequestNumber).build();
     request.setLoad(sl);
 
     master.getMasterRpcServices().regionServerReport(null, request.build());
-    metricsHelper.assertCounter("cluster_requests", expectedRequestNumber, masterSource);
 
     expectedRequestNumber = 15000;
 
@@ -123,32 +121,5 @@ public class TestMasterMetrics {
     request.setLoad(sl);
 
     master.getMasterRpcServices().regionServerReport(null, request.build());
-    metricsHelper.assertCounter("cluster_requests", expectedRequestNumber, masterSource);
-  }
-
-  @Test
-  public void testDefaultMasterMetrics() throws Exception {
-    MetricsMasterSource masterSource = master.getMasterMetrics().getMetricsSource();
-    boolean tablesOnMaster = LoadBalancer.isTablesOnMaster(TEST_UTIL.getConfiguration());
-    metricsHelper.assertGauge("numRegionServers", 1 + (tablesOnMaster ? 1 : 0), masterSource);
-    metricsHelper.assertGauge("averageLoad", 1, masterSource);
-    metricsHelper.assertGauge("numDeadRegionServers", 0, masterSource);
-
-    metricsHelper.assertGauge("masterStartTime", master.getMasterStartTime(), masterSource);
-    metricsHelper.assertGauge("masterActiveTime", master.getMasterActiveTime(), masterSource);
-
-    metricsHelper.assertTag("isActiveMaster", "true", masterSource);
-    metricsHelper.assertTag("serverName", master.getServerName().toString(), masterSource);
-    metricsHelper.assertTag("clusterId", master.getClusterId(), masterSource);
-    metricsHelper.assertTag("zookeeperQuorum", master.getZooKeeper().getQuorum(), masterSource);
-
-    metricsHelper.assertCounter(MetricsMasterSource.SERVER_CRASH_METRIC_PREFIX+"SubmittedCount",
-      0, masterSource);
-  }
-
-  @Test
-  public void testDefaultMasterProcMetrics() throws Exception {
-    MetricsMasterProcSource masterSource = master.getMasterMetrics().getMetricsProcSource();
-    metricsHelper.assertGauge("numMasterWALs", master.getNumWALFiles(), masterSource);
   }
 }

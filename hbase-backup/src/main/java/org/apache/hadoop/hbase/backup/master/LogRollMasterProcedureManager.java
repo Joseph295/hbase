@@ -81,7 +81,7 @@ public class LogRollMasterProcedureManager extends MasterProcedureManager {
   }
 
   @Override
-  public void initialize(MasterServices master, MetricsMaster metricsMaster)
+  public void initialize(MasterServices master)
       throws IOException, UnsupportedOperationException {
     this.master = master;
     this.done = false;
@@ -99,10 +99,10 @@ public class LogRollMasterProcedureManager extends MasterProcedureManager {
 
     // setup the default procedure coordinator
     ThreadPoolExecutor tpool = ProcedureCoordinator.defaultPool(name, opThreads);
-    ProcedureCoordinationManager coordManager = new ZKProcedureCoordinationManager(master);
-    ProcedureCoordinatorRpcs comms =
-        coordManager.getProcedureCoordinatorRpcs(getProcedureSignature(), name);
-    this.coordinator = new ProcedureCoordinator(comms, tpool, timeoutMillis, wakeFrequency);
+    ProcedureCoordinationManager procedureCoordinationManager = new ZKProcedureCoordinationManager(master);
+    ProcedureCoordinatorRpcs procedureCoordinatorRpcs =
+        procedureCoordinationManager.getProcedureCoordinatorRpcs(getProcedureSignature(), name);
+    this.coordinator = new ProcedureCoordinator(procedureCoordinatorRpcs, tpool, timeoutMillis, wakeFrequency);
 
   }
 

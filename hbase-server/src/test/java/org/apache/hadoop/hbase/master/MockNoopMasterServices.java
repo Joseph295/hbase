@@ -144,11 +144,6 @@ public class MockNoopMasterServices implements MasterServices {
   }
 
   @Override
-  public MetricsMaster getMasterMetrics() {
-    return metricsMaster;
-  }
-
-  @Override
   public ServerManager getServerManager() {
     return null;
   }

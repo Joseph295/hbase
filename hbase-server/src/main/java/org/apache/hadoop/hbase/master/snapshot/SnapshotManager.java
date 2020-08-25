@@ -1180,7 +1180,7 @@ public class SnapshotManager extends MasterProcedureManager implements Stoppable
   }
 
   @Override
-  public void initialize(MasterServices master, MetricsMaster metricsMaster) throws KeeperException,
+  public void initialize(MasterServices master) throws KeeperException,
       IOException, UnsupportedOperationException {
     this.master = master;
 

@@ -93,7 +93,6 @@
       latencyMetrics.put("TransitionRegionProcedure#unassignRegion", metricsAssignmentManagerSource.getUnassignProcMetrics());
       latencyMetrics.put("TransitionRegionProcedure#moveRegion", metricsAssignmentManagerSource.getMoveProcMetrics());
       latencyMetrics.put("TransitionRegionProcedure#reopenRegion", metricsAssignmentManagerSource.getReopenProcMetrics());
-      latencyMetrics.put("ServerCrashProcedure", master.getMasterMetrics().getServerCrashProcMetrics());
 
       double[] percentiles = new double[] { 0.5, 0.9};
       for (Map.Entry<String, ProcedureMetrics> e : latencyMetrics.entrySet()) {

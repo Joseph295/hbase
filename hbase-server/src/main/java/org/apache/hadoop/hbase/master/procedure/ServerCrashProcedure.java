@@ -545,11 +545,6 @@ public class ServerCrashProcedure
   }
 
   @Override
-  protected ProcedureMetrics getProcedureMetrics(MasterProcedureEnv env) {
-    return env.getMasterServices().getMasterMetrics().getServerCrashProcMetrics();
-  }
-
-  @Override
   protected boolean holdLock(MasterProcedureEnv env) {
     return true;
   }

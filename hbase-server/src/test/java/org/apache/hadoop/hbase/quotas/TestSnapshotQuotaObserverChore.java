@@ -115,8 +115,7 @@ public class TestSnapshotQuotaObserverChore {
     master = TEST_UTIL.getHBaseCluster().getMaster();
     helper.removeAllQuotas(conn);
     testChore = new SnapshotQuotaObserverChore(
-        TEST_UTIL.getConnection(), TEST_UTIL.getConfiguration(), master.getFileSystem(), master,
-        null);
+        TEST_UTIL.getConnection(), TEST_UTIL.getConfiguration(), master.getFileSystem(), master);
   }
 
   @Test

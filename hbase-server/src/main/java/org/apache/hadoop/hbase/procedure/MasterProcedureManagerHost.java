@@ -44,10 +44,10 @@ public class MasterProcedureManagerHost extends
     }
   }
 
-  public void initialize(MasterServices master, final MetricsMaster metricsMaster)
+  public void initialize(MasterServices master)
       throws KeeperException, IOException, UnsupportedOperationException {
     for (MasterProcedureManager mpm : getProcedureManagers()) {
-      mpm.initialize(master, metricsMaster);
+      mpm.initialize(master);
     }
   }
 

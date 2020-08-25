@@ -67,23 +67,20 @@ public class SnapshotQuotaObserverChore extends ScheduledChore {
 
   private final Connection conn;
   private final Configuration conf;
-  private final MetricsMaster metrics;
   private final FileSystem fs;
 
-  public SnapshotQuotaObserverChore(HMaster master, MetricsMaster metrics) {
+  public SnapshotQuotaObserverChore(HMaster master) {
     this(
-        master.getConnection(), master.getConfiguration(), master.getFileSystem(), master, metrics);
+        master.getConnection(), master.getConfiguration(), master.getFileSystem(), master);
   }
 
   SnapshotQuotaObserverChore(
-      Connection conn, Configuration conf, FileSystem fs, Stoppable stopper,
-      MetricsMaster metrics) {
+      Connection conn, Configuration conf, FileSystem fs, Stoppable stopper) {
     super(
         QuotaObserverChore.class.getSimpleName(), stopper, getPeriod(conf),
         getInitialDelay(conf), getTimeUnit(conf));
     this.conn = conn;
     this.conf = conf;
-    this.metrics = metrics;
     this.fs = fs;
   }
 
@@ -95,9 +92,6 @@ public class SnapshotQuotaObserverChore extends ScheduledChore {
       }
       long start = System.nanoTime();
       _chore();
-      if (null != metrics) {
-        metrics.incrementSnapshotObserverTime((System.nanoTime() - start) / 1_000_000);
-      }
     } catch (IOException e) {
       LOG.warn("Failed to compute the size of snapshots, will retry", e);
     }
@@ -108,9 +102,6 @@ public class SnapshotQuotaObserverChore extends ScheduledChore {
     // This values are all of the snapshots that we need to compute the size of.
     long start = System.nanoTime();
     Multimap<TableName,String> snapshotsToComputeSize = getSnapshotsToComputeSize();
-    if (null != metrics) {
-      metrics.incrementSnapshotFetchTime((System.nanoTime() - start) / 1_000_000);
-    }
 
     // Remove old table snapshots data
     pruneTableSnapshots(snapshotsToComputeSize);
@@ -233,11 +224,6 @@ public class SnapshotQuotaObserverChore extends ScheduledChore {
       long totalSnapshotSize = notifier.computeAndStoreSnapshotSizes(snapshotNames);
       // Bucket that size into the appropriate namespace
       snapshotSizesByNamespace.merge(tn.getNamespaceAsString(), totalSnapshotSize, Long::sum);
-    }
-
-    // Update the amount of time it took to compute the size of the snapshots for a table
-    if (metrics != null) {
-      metrics.incrementSnapshotSizeComputationTime((System.nanoTime() - start) / 1_000_000);
     }
 
     return snapshotSizesByNamespace;

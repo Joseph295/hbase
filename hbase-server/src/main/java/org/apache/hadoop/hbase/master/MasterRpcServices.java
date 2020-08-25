@@ -582,11 +582,6 @@ public class MasterRpcServices extends RSRpcServices implements
       master.getServerManager().regionServerReport(serverName, newLoad);
       master.getAssignmentManager().reportOnlineRegions(serverName,
         newLoad.getRegionMetrics().keySet());
-      if (sl != null && master.metricsMaster != null) {
-        // Up our metrics.
-        master.metricsMaster.incrementRequests(
-          sl.getTotalNumberOfRequests() - (oldLoad != null ? oldLoad.getRequestCount() : 0));
-      }
     } catch (IOException ioe) {
       throw new ServiceException(ioe);
     }

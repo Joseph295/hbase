@@ -58,7 +58,7 @@ public class SimpleMasterProcedureManager extends MasterProcedureManager {
   }
 
   @Override
-  public void initialize(MasterServices master, MetricsMaster metricsMaster)
+  public void initialize(MasterServices master)
       throws KeeperException, IOException, UnsupportedOperationException {
     this.master = master;
     this.done = false;

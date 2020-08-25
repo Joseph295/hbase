@@ -195,7 +195,6 @@ import org.apache.hadoop.hbase.rsgroup.RSGroupUtil;
 import org.apache.hadoop.hbase.security.AccessDeniedException;
 import org.apache.hadoop.hbase.security.SecurityConstants;
 import org.apache.hadoop.hbase.security.UserProvider;
-import org.apache.hadoop.hbase.trace.TraceUtil;
 import org.apache.hadoop.hbase.util.Addressing;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
@@ -345,8 +344,6 @@ public class HMaster extends HRegionServer implements MasterServices {
 
   public static final int DEFAULT_HBASE_MASTER_CLEANER_INTERVAL = 600 * 1000;
 
-  // Metrics for the HMaster
-  final MetricsMaster metricsMaster;
   // file system manager for the master FS operations
   private MasterFileSystem fileSystemManager;
   private MasterWalManager walManager;
@@ -439,7 +436,7 @@ public class HMaster extends HRegionServer implements MasterServices {
   // monitor for snapshot of hbase tables
   SnapshotManager snapshotManager;
   // monitor for distributed procedures
-  private MasterProcedureManagerHost mpmHost;
+  private MasterProcedureManagerHost masterProcedureManagerHost;
 
   private RegionsRecoveryChore regionsRecoveryChore = null;
 
@@ -529,7 +526,6 @@ public class HMaster extends HRegionServer implements MasterServices {
    */
   public HMaster(final Configuration conf) throws IOException {
     super(conf);
-    TraceUtil.initTracer(conf);
     try {
       if (conf.getBoolean(MAINTENANCE_MODE, false)) {
         LOG.info("Detected {}=true via configuration.", MAINTENANCE_MODE);
@@ -555,8 +551,6 @@ public class HMaster extends HRegionServer implements MasterServices {
       if (this.conf.get("mapreduce.task.attempt.id") == null) {
         this.conf.set("mapreduce.task.attempt.id", "hb_m_" + this.serverName.toString());
       }
-
-      this.metricsMaster = new MetricsMaster(new MetricsMasterWrapperImpl(this));
 
       // preload table descriptor at startup
       this.preLoadTableDescriptors = conf.getBoolean("hbase.master.preload.tabledescriptors", true);
@@ -779,11 +773,6 @@ public class HMaster extends HRegionServer implements MasterServices {
     return MasterDumpServlet.class;
   }
 
-  @Override
-  public MetricsMaster getMasterMetrics() {
-    return metricsMaster;
-  }
-
   /**
    * <p>
    * Initialize all ZK based system trackers. But do not include {@link RegionServerTracker}, it
@@ -859,11 +848,11 @@ public class HMaster extends HRegionServer implements MasterServices {
 
     // create/initialize the snapshot manager and other procedure managers
     this.snapshotManager = new SnapshotManager();
-    this.mpmHost = new MasterProcedureManagerHost();
-    this.mpmHost.register(this.snapshotManager);
-    this.mpmHost.register(new MasterFlushTableProcedureManager());
-    this.mpmHost.loadProcedures(conf);
-    this.mpmHost.initialize(this, this.metricsMaster);
+    this.masterProcedureManagerHost = new MasterProcedureManagerHost();
+    this.masterProcedureManagerHost.register(this.snapshotManager);
+    this.masterProcedureManagerHost.register(new MasterFlushTableProcedureManager());
+    this.masterProcedureManagerHost.loadProcedures(conf);
+    this.masterProcedureManagerHost.initialize(this);
   }
 
   // Will be overriden in test to inject customized AssignmentManager
@@ -1170,11 +1159,11 @@ public class HMaster extends HRegionServer implements MasterServices {
       // Create the quota snapshot notifier
       spaceQuotaSnapshotNotifier = createQuotaSnapshotNotifier();
       spaceQuotaSnapshotNotifier.initialize(getConnection());
-      this.quotaObserverChore = new QuotaObserverChore(this, getMasterMetrics());
+      this.quotaObserverChore = new QuotaObserverChore(this);
       // Start the chore to read the region FS space reports and act on them
       getChoreService().scheduleChore(quotaObserverChore);
 
-      this.snapshotQuotaChore = new SnapshotQuotaObserverChore(this, getMasterMetrics());
+      this.snapshotQuotaChore = new SnapshotQuotaObserverChore(this);
       // Start the chore to read snapshots and add their usage to table/NS quotas
       getChoreService().scheduleChore(snapshotQuotaChore);
     }
@@ -1557,8 +1546,8 @@ public class HMaster extends HRegionServer implements MasterServices {
     if (this.fileSystemManager != null) {
       this.fileSystemManager.stop();
     }
-    if (this.mpmHost != null) {
-      this.mpmHost.stop("server shutting down.");
+    if (this.masterProcedureManagerHost != null) {
+      this.masterProcedureManagerHost.stop("server shutting down.");
     }
     if (this.regionServerTracker != null) {
       this.regionServerTracker.stop();
@@ -2184,9 +2173,6 @@ public class HMaster extends HRegionServer implements MasterServices {
       final long nonceGroup, final long nonce) throws IOException {
     checkInitialized();
     TableDescriptor desc = getMasterCoprocessorHost().preCreateTableRegionsInfos(tableDescriptor);
-    if (desc == null) {
-      throw new IOException("Creation for " + tableDescriptor + " is canceled by CP");
-    }
     String namespace = desc.getTableName().getNamespaceAsString();
     this.clusterSchemaService.getNamespace(namespace);
 
@@ -3133,7 +3119,7 @@ public class HMaster extends HRegionServer implements MasterServices {
    */
   @Override
   public MasterProcedureManagerHost getMasterProcedureManagerHost() {
-    return mpmHost;
+    return masterProcedureManagerHost;
   }
 
   @Override
@@ -3614,26 +3600,21 @@ public class HMaster extends HRegionServer implements MasterServices {
   @Override
   public long addReplicationPeer(String peerId, ReplicationPeerConfig peerConfig, boolean enabled)
       throws ReplicationException, IOException {
-    LOG.info(getClientIdAuditPrefix() + " creating replication peer, id=" + peerId + ", config=" +
-      peerConfig + ", state=" + (enabled ? "ENABLED" : "DISABLED"));
     return executePeerProcedure(new AddPeerProcedure(peerId, peerConfig, enabled));
   }
 
   @Override
   public long removeReplicationPeer(String peerId) throws ReplicationException, IOException {
-    LOG.info(getClientIdAuditPrefix() + " removing replication peer, id=" + peerId);
     return executePeerProcedure(new RemovePeerProcedure(peerId));
   }
 
   @Override
   public long enableReplicationPeer(String peerId) throws ReplicationException, IOException {
-    LOG.info(getClientIdAuditPrefix() + " enable replication peer, id=" + peerId);
     return executePeerProcedure(new EnablePeerProcedure(peerId));
   }
 
   @Override
   public long disableReplicationPeer(String peerId) throws ReplicationException, IOException {
-    LOG.info(getClientIdAuditPrefix() + " disable replication peer, id=" + peerId);
     return executePeerProcedure(new DisablePeerProcedure(peerId));
   }
 
@@ -3643,7 +3624,6 @@ public class HMaster extends HRegionServer implements MasterServices {
     if (cpHost != null) {
       cpHost.preGetReplicationPeerConfig(peerId);
     }
-    LOG.info(getClientIdAuditPrefix() + " get replication peer config, id=" + peerId);
     ReplicationPeerConfig peerConfig = this.replicationPeerManager.getPeerConfig(peerId)
         .orElseThrow(() -> new ReplicationPeerNotFoundException(peerId));
     if (cpHost != null) {
@@ -3655,8 +3635,6 @@ public class HMaster extends HRegionServer implements MasterServices {
   @Override
   public long updateReplicationPeerConfig(String peerId, ReplicationPeerConfig peerConfig)
       throws ReplicationException, IOException {
-    LOG.info(getClientIdAuditPrefix() + " update replication peer config, id=" + peerId +
-      ", config=" + peerConfig);
     return executePeerProcedure(new UpdatePeerConfigProcedure(peerId, peerConfig));
   }
 
@@ -3666,7 +3644,6 @@ public class HMaster extends HRegionServer implements MasterServices {
     if (cpHost != null) {
       cpHost.preListReplicationPeers(regex);
     }
-    LOG.debug("{} list replication peers, regex={}", getClientIdAuditPrefix(), regex);
     Pattern pattern = regex == null ? null : Pattern.compile(regex);
     List<ReplicationPeerDescription> peers =
       this.replicationPeerManager.listPeers(pattern);
@@ -3679,10 +3656,6 @@ public class HMaster extends HRegionServer implements MasterServices {
   @Override
   public long transitReplicationPeerSyncReplicationState(String peerId, SyncReplicationState state)
     throws ReplicationException, IOException {
-    LOG.info(
-      getClientIdAuditPrefix() +
-        " transit current cluster state to {} in a synchronous replication peer id={}",
-      state, peerId);
     return executePeerProcedure(new TransitPeerSyncReplicationStateProcedure(peerId, state));
   }
 

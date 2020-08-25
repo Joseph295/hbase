@@ -63,7 +63,7 @@ public abstract class MasterProcedureManager extends ProcedureManager implements
    * @throws IOException
    * @throws UnsupportedOperationException
    */
-  public abstract void initialize(MasterServices master, MetricsMaster metricsMaster)
+  public abstract void initialize(MasterServices master)
       throws KeeperException, IOException, UnsupportedOperationException;
 
   /**

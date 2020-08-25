@@ -78,7 +78,6 @@ public class QuotaObserverChore extends ScheduledChore {
   private final Connection conn;
   private final Configuration conf;
   private final MasterQuotaManager quotaManager;
-  private final MetricsMaster metrics;
   /*
    * Callback that changes in quota snapshots are passed to.
    */
@@ -101,22 +100,21 @@ public class QuotaObserverChore extends ScheduledChore {
   private QuotaSnapshotStore<TableName> tableSnapshotStore;
   private QuotaSnapshotStore<String> namespaceSnapshotStore;
 
-  public QuotaObserverChore(HMaster master, MetricsMaster metrics) {
+  public QuotaObserverChore(HMaster master) {
     this(
         master.getConnection(), master.getConfiguration(),
         master.getSpaceQuotaSnapshotNotifier(), master.getMasterQuotaManager(),
-        master, metrics);
+        master);
   }
 
   QuotaObserverChore(
       Connection conn, Configuration conf, SpaceQuotaSnapshotNotifier snapshotNotifier,
-      MasterQuotaManager quotaManager, Stoppable stopper, MetricsMaster metrics) {
+      MasterQuotaManager quotaManager, Stoppable stopper) {
     super(
         QuotaObserverChore.class.getSimpleName(), stopper, getPeriod(conf),
         getInitialDelay(conf), getTimeUnit(conf));
     this.conn = conn;
     this.conf = conf;
-    this.metrics = metrics;
     this.quotaManager = quotaManager;
     this.snapshotNotifier = Objects.requireNonNull(snapshotNotifier);
     this.tableQuotaSnapshots = new ConcurrentHashMap<>();
@@ -135,9 +133,6 @@ public class QuotaObserverChore extends ScheduledChore {
       }
       long start = System.nanoTime();
       _chore();
-      if (metrics != null) {
-        metrics.incrementQuotaObserverTime((System.nanoTime() - start) / 1_000_000);
-      }
     } catch (IOException e) {
       LOG.warn("Failed to process quota reports and update quota state. Will retry.", e);
     }
@@ -149,12 +144,6 @@ public class QuotaObserverChore extends ScheduledChore {
     TablesWithQuotas tablesWithQuotas = fetchAllTablesWithQuotasDefined();
     if (LOG.isTraceEnabled()) {
       LOG.trace("Found following tables with quotas: " + tablesWithQuotas);
-    }
-
-    if (metrics != null) {
-      // Set the number of namespaces and tables with quotas defined
-      metrics.setNumSpaceQuotas(tablesWithQuotas.getTableQuotaTables().size()
-          + tablesWithQuotas.getNamespacesWithQuotas().size());
     }
 
     // The current "view" of region space use. Used henceforth.
@@ -170,10 +159,6 @@ public class QuotaObserverChore extends ScheduledChore {
 
     // Create the stores to track table and namespace snapshots
     initializeSnapshotStores(reportedRegionSpaceUse);
-    // Report the number of (non-expired) region size reports
-    if (metrics != null) {
-      metrics.setNumRegionSizeReports(reportedRegionSpaceUse.size());
-    }
 
     // Filter out tables for which we don't have adequate regionspace reports yet.
     // Important that we do this after we instantiate the stores above
@@ -264,10 +249,6 @@ public class QuotaObserverChore extends ScheduledChore {
         numTablesInViolation++;
       }
     }
-    // Report the number of tables in violation
-    if (metrics != null) {
-      metrics.setNumTableInSpaceQuotaViolation(numTablesInViolation);
-    }
   }
 
   /**
@@ -306,11 +287,6 @@ public class QuotaObserverChore extends ScheduledChore {
       if (targetSnapshot.getQuotaStatus().isInViolation()) {
         numNamespacesInViolation++;
       }
-    }
-
-    // Report the number of namespaces in violation
-    if (metrics != null) {
-      metrics.setNumNamespacesInSpaceQuotaViolation(numNamespacesInViolation);
     }
   }
 

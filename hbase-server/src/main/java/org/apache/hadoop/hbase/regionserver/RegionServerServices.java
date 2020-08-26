@@ -244,11 +244,6 @@ public interface RegionServerServices extends Server, MutableOnlineRegions, Favo
   double getFlushPressure();
 
   /**
-   * @return the metrics tracker for the region server
-   */
-  MetricsRegionServer getMetrics();
-
-  /**
    * Master based locks on namespaces/tables/regions.
    */
   EntityLock regionLock(List<RegionInfo> regionInfos, String description,

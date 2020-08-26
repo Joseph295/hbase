@@ -41,14 +41,11 @@ public class ExecutorStatusChore extends ScheduledChore {
   public static final String WAKE_FREQ = "hbase.executors.status.collect.period";
   public static final int DEFAULT_WAKE_FREQ = 60000;
   private ExecutorService service;
-  private DynamicMetricsRegistry metricsRegistry;
 
-  public ExecutorStatusChore(int sleepTime, Stoppable stopper, ExecutorService service,
-      MetricsRegionServerSource metrics) {
+  public ExecutorStatusChore(int sleepTime, Stoppable stopper, ExecutorService service) {
     super("ExecutorStatusChore", stopper, sleepTime);
     LOG.info("ExecutorStatusChore runs every {} ", StringUtils.formatTime(sleepTime));
     this.service = service;
-    this.metricsRegistry = ((MetricsRegionServerSourceImpl) metrics).getMetricsRegistry();
   }
 
   @Override
@@ -62,15 +59,11 @@ public class ExecutorStatusChore extends ScheduledChore {
         // include ExecutorType & Servername(split by '-'), here we only need the ExecutorType
         String poolName = name.split("-")[0];
         ExecutorStatus status = statusEntry.getValue();
-        MutableGaugeLong queued = metricsRegistry.getGauge(poolName + "_queued", 0L);
-        MutableGaugeLong running = metricsRegistry.getGauge(poolName + "_running", 0L);
         int queueSize = status.getQueuedEvents().size();
         int runningSize = status.getRunning().size();
         if (queueSize > 0) {
           LOG.warn("{}'s size info, queued: {}, running: {}", poolName, queueSize, runningSize);
         }
-        queued.set(queueSize);
-        running.set(runningSize);
       }
     } catch(Throwable e) {
       LOG.error(e.getMessage(), e);
@@ -79,8 +72,6 @@ public class ExecutorStatusChore extends ScheduledChore {
 
   @VisibleForTesting
   public Pair<Long, Long> getExecutorStatus(String poolName) {
-    MutableGaugeLong running = metricsRegistry.getGauge(poolName + "_running", 0L);
-    MutableGaugeLong queued = metricsRegistry.getGauge(poolName + "_queued", 0L);
-    return new Pair<Long, Long>(running.value(), queued.value());
+    return new Pair<Long, Long>();
   }
 }

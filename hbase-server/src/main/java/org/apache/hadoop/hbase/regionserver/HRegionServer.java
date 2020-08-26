@@ -17,15 +17,11 @@
  */
 package org.apache.hadoop.hbase.regionserver;
 
-import static org.apache.hadoop.hbase.HConstants.DEFAULT_HBASE_SPLIT_COORDINATED_BY_ZK;
-import static org.apache.hadoop.hbase.HConstants.DEFAULT_HBASE_SPLIT_WAL_MAX_SPLITTER;
-import static org.apache.hadoop.hbase.HConstants.HBASE_SPLIT_WAL_COORDINATED_BY_ZK;
-import static org.apache.hadoop.hbase.HConstants.HBASE_SPLIT_WAL_MAX_SPLITTER;
+import static org.apache.hadoop.hbase.HConstants.*;
 import static org.apache.hadoop.hbase.util.DNS.RS_HOSTNAME_KEY;
 
 import java.io.IOException;
 import java.lang.management.MemoryType;
-import java.lang.management.MemoryUsage;
 import java.lang.reflect.Constructor;
 import java.net.BindException;
 import java.net.InetAddress;
@@ -58,7 +54,6 @@ import javax.management.MalformedObjectNameException;
 import javax.servlet.http.HttpServlet;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -142,7 +137,6 @@ import org.apache.hadoop.hbase.namequeues.NamedQueueRecorder;
 import org.apache.hadoop.hbase.namequeues.SlowLogTableOpsChore;
 import org.apache.hadoop.hbase.regionserver.throttle.FlushThroughputControllerFactory;
 import org.apache.hadoop.hbase.regionserver.throttle.ThroughputController;
-import org.apache.hadoop.hbase.replication.regionserver.ReplicationLoad;
 import org.apache.hadoop.hbase.replication.regionserver.ReplicationSourceInterface;
 import org.apache.hadoop.hbase.replication.regionserver.ReplicationStatus;
 import org.apache.hadoop.hbase.security.SecurityConstants;
@@ -151,8 +145,6 @@ import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.security.UserProvider;
 import org.apache.hadoop.hbase.security.access.AccessChecker;
 import org.apache.hadoop.hbase.security.access.ZKPermissionWatcher;
-import org.apache.hadoop.hbase.trace.SpanReceiverHost;
-import org.apache.hadoop.hbase.trace.TraceUtil;
 import org.apache.hadoop.hbase.util.Addressing;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.CommonFSUtils;
@@ -189,7 +181,6 @@ import org.apache.yetus.audience.InterfaceAudience;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.misc.Signal;
 
 import org.apache.hbase.thirdparty.com.google.common.annotations.VisibleForTesting;
 import org.apache.hbase.thirdparty.com.google.common.base.Preconditions;
@@ -212,12 +203,8 @@ import org.apache.hadoop.hbase.shaded.protobuf.RequestConverter;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos.CoprocessorServiceCall;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos.CoprocessorServiceRequest;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos.CoprocessorServiceResponse;
-import org.apache.hadoop.hbase.shaded.protobuf.generated.ClusterStatusProtos;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.ClusterStatusProtos.RegionLoad;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.ClusterStatusProtos.RegionStoreSequenceIds;
-import org.apache.hadoop.hbase.shaded.protobuf.generated.ClusterStatusProtos.UserLoad;
-import org.apache.hadoop.hbase.shaded.protobuf.generated.HBaseProtos.Coprocessor;
-import org.apache.hadoop.hbase.shaded.protobuf.generated.HBaseProtos.Coprocessor.Builder;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.HBaseProtos.NameStringPair;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.HBaseProtos.RegionServerInfo;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.HBaseProtos.RegionSpecifier;
@@ -278,7 +265,7 @@ public class HRegionServer extends Thread implements
 
   private MemStoreFlusher cacheFlusher;
 
-  private HeapMemoryManager hMemManager;
+  private HeapMemoryManager heapMemoryManager;
 
   /**
    * The asynchronous cluster connection to be shared by services.
@@ -377,11 +364,6 @@ public class HRegionServer extends Thread implements
 
   /** region server process name */
   public static final String REGIONSERVER = "regionserver";
-
-
-  private MetricsRegionServer metricsRegionServer;
-  MetricsRegionServerWrapperImpl metricsRegionServerImpl;
-  private SpanReceiverHost spanReceiverHost;
 
   /**
    * ChoreService used to schedule tasks that we want to run periodically
@@ -483,7 +465,7 @@ public class HRegionServer extends Thread implements
   // chore for refreshing store files for secondary regions
   private StorefileRefresherChore storefileRefresher;
 
-  private RegionServerCoprocessorHost rsHost;
+  private RegionServerCoprocessorHost regionServerCoprocessorHost;
 
   private RegionServerProcedureManagerHost rspmHost;
 
@@ -631,7 +613,6 @@ public class HRegionServer extends Thread implements
         (t, e) -> abort("Uncaught exception in executorService thread " + t.getName(), e);
 
       initializeFileSystem();
-      spanReceiverHost = SpanReceiverHost.getInstance(getConfiguration());
 
       this.configurationManager = new ConfigurationManager();
 
@@ -943,7 +924,7 @@ public class HRegionServer extends Thread implements
         ShutdownHook.install(conf, dataFs, this, Thread.currentThread());
         // Initialize the RegionServerCoprocessorHost now that our ephemeral
         // node was created, in case any coprocessors want to use ZooKeeper
-        this.rsHost = new RegionServerCoprocessorHost(this, this.conf);
+        this.regionServerCoprocessorHost = new RegionServerCoprocessorHost(this, this.conf);
 
         // Try and register with the Master; tell it we are here.  Break if server is stopped or
         // the clusterup flag is down or hdfs went wacky. Once registered successfully, go ahead and
@@ -1057,7 +1038,7 @@ public class HRegionServer extends Thread implements
 
     // Send interrupts to wake up threads if sleeping so they notice shutdown.
     // TODO: Should we check they are alive? If OOME could have exited already
-    if (this.hMemManager != null) this.hMemManager.stop();
+    if (this.heapMemoryManager != null) this.heapMemoryManager.stop();
     if (this.cacheFlusher != null) this.cacheFlusher.interruptIfNecessary();
     if (this.compactSplitThread != null) this.compactSplitThread.interruptIfNecessary();
 
@@ -1195,11 +1176,9 @@ public class HRegionServer extends Thread implements
       // the current server could be stopping.
       return;
     }
-    ClusterStatusProtos.ServerLoad sl = buildServerLoad(reportStartTime, reportEndTime);
     try {
       RegionServerReportRequest.Builder request = RegionServerReportRequest.newBuilder();
       request.setServer(ProtobufUtil.toServerName(this.serverName));
-      request.setLoad(sl);
       rss.regionServerReport(null, request.build());
     } catch (ServiceException se) {
       IOException ioe = ProtobufUtil.getRemoteException(se);
@@ -1270,10 +1249,6 @@ public class HRegionServer extends Thread implements
     RegionSpaceUseReportRequest request =
         buildRegionSpaceUseReportRequest(Objects.requireNonNull(regionSizeStore));
     rss.reportRegionSpaceUse(null, request);
-    // Record the number of size reports sent
-    if (metricsRegionServer != null) {
-      metricsRegionServer.incrementNumRegionSizeReportsSent(regionSizeStore.size());
-    }
   }
 
   /**
@@ -1303,85 +1278,6 @@ public class HRegionServer extends Thread implements
         .setRegionInfo(ProtobufUtil.toRegionInfo(Objects.requireNonNull(regionInfo)))
         .setRegionSize(Objects.requireNonNull(sizeInBytes))
         .build();
-  }
-
-  private ClusterStatusProtos.ServerLoad buildServerLoad(long reportStartTime, long reportEndTime)
-      throws IOException {
-    // We're getting the MetricsRegionServerWrapper here because the wrapper computes requests
-    // per second, and other metrics  As long as metrics are part of ServerLoad it's best to use
-    // the wrapper to compute those numbers in one place.
-    // In the long term most of these should be moved off of ServerLoad and the heart beat.
-    // Instead they should be stored in an HBase table so that external visibility into HBase is
-    // improved; Additionally the load balancer will be able to take advantage of a more complete
-    // history.
-    MetricsRegionServerWrapper regionServerWrapper = metricsRegionServer.getRegionServerWrapper();
-    Collection<HRegion> regions = getOnlineRegionsLocalContext();
-    long usedMemory = -1L;
-    long maxMemory = -1L;
-    final MemoryUsage usage = MemorySizeUtil.safeGetHeapMemoryUsage();
-    if (usage != null) {
-      usedMemory = usage.getUsed();
-      maxMemory = usage.getMax();
-    }
-
-    ClusterStatusProtos.ServerLoad.Builder serverLoad = ClusterStatusProtos.ServerLoad.newBuilder();
-    serverLoad.setNumberOfRequests((int) regionServerWrapper.getRequestsPerSecond());
-    serverLoad.setTotalNumberOfRequests(regionServerWrapper.getTotalRequestCount());
-    serverLoad.setUsedHeapMB((int)(usedMemory / 1024 / 1024));
-    serverLoad.setMaxHeapMB((int) (maxMemory / 1024 / 1024));
-    Set<String> coprocessors = getWAL(null).getCoprocessorHost().getCoprocessors();
-    Builder coprocessorBuilder = Coprocessor.newBuilder();
-    for (String coprocessor : coprocessors) {
-      serverLoad.addCoprocessors(coprocessorBuilder.setName(coprocessor).build());
-    }
-    RegionLoad.Builder regionLoadBldr = RegionLoad.newBuilder();
-    RegionSpecifier.Builder regionSpecifier = RegionSpecifier.newBuilder();
-    for (HRegion region : regions) {
-      if (region.getCoprocessorHost() != null) {
-        Set<String> regionCoprocessors = region.getCoprocessorHost().getCoprocessors();
-        for (String regionCoprocessor : regionCoprocessors) {
-          serverLoad.addCoprocessors(coprocessorBuilder.setName(regionCoprocessor).build());
-        }
-      }
-      serverLoad.addRegionLoads(createRegionLoad(region, regionLoadBldr, regionSpecifier));
-      for (String coprocessor : getWAL(region.getRegionInfo()).getCoprocessorHost()
-          .getCoprocessors()) {
-        serverLoad.addCoprocessors(coprocessorBuilder.setName(coprocessor).build());
-      }
-    }
-    serverLoad.setReportStartTime(reportStartTime);
-    serverLoad.setReportEndTime(reportEndTime);
-    if (this.infoServer != null) {
-      serverLoad.setInfoServerPort(this.infoServer.getPort());
-    } else {
-      serverLoad.setInfoServerPort(-1);
-    }
-    MetricsUserAggregateSource userSource =
-        metricsRegionServer.getMetricsUserAggregate().getSource();
-    if (userSource != null) {
-      Map<String, MetricsUserSource> userMetricMap = userSource.getUserSources();
-      for (Entry<String, MetricsUserSource> entry : userMetricMap.entrySet()) {
-        serverLoad.addUserLoads(createUserLoad(entry.getKey(), entry.getValue()));
-      }
-    }
-    // for the replicationLoad purpose. Only need to get from one executorService
-    // either source or sink will get the same info
-    ReplicationSourceService rsources = getReplicationSourceService();
-
-    if (rsources != null) {
-      // always refresh first to get the latest value
-      ReplicationLoad rLoad = rsources.refreshAndGetReplicationLoad();
-      if (rLoad != null) {
-        serverLoad.setReplLoadSink(rLoad.getReplicationLoadSink());
-        for (ClusterStatusProtos.ReplicationLoadSource rLS :
-            rLoad.getReplicationLoadSourceEntries()) {
-          serverLoad.addReplLoadSource(rLS);
-        }
-
-      }
-    }
-
-    return serverLoad.build();
   }
 
   private String getOnlineRegionsAsPrintableString() {
@@ -1555,11 +1451,8 @@ public class HRegionServer extends Thread implements
       // Init in here rather than in constructor after thread name has been set
       final MetricsTable metricsTable =
           new MetricsTable(new MetricsTableWrapperAggregateImpl(this));
-      this.metricsRegionServerImpl = new MetricsRegionServerWrapperImpl(this);
-      this.metricsRegionServer = new MetricsRegionServer(
-          metricsRegionServerImpl, conf, metricsTable);
       // Now that we have a metrics source, start the pause monitor
-      this.pauseMonitor = new JvmPauseMonitor(conf, getMetrics().getMetricsSource());
+      this.pauseMonitor = new JvmPauseMonitor(conf, null);
       pauseMonitor.start();
 
       // There is a rare case where we do NOT want services to start. Check config.
@@ -1569,7 +1462,6 @@ public class HRegionServer extends Thread implements
       // In here we start up the replication Service. Above we initialized it. TODO. Reconcile.
       // or make sense of it.
       startReplicationService();
-
 
       // Set up ZK
       LOG.info("Serving as " + this.serverName + ", RpcServer on " + rpcServices.isa +
@@ -1606,15 +1498,15 @@ public class HRegionServer extends Thread implements
       int chunkSize = conf.getInt(MemStoreLAB.CHUNK_SIZE_KEY, MemStoreLAB.CHUNK_SIZE_DEFAULT);
       // init the chunkCreator
       ChunkCreator.initialize(chunkSize, offheap, globalMemStoreSize, poolSizePercentage,
-        initialCountPercentage, this.hMemManager);
+        initialCountPercentage, this.heapMemoryManager);
     }
   }
 
   private void startHeapMemoryManager() {
     if (this.blockCache != null) {
-      this.hMemManager =
+      this.heapMemoryManager =
           new HeapMemoryManager(this.blockCache, this.cacheFlusher, this, regionServerAccounting);
-      this.hMemManager.start(getChoreService());
+      this.heapMemoryManager.start(getChoreService());
     }
   }
 
@@ -1633,112 +1525,6 @@ public class HRegionServer extends Thread implements
   @Override
   public RegionServerAccounting getRegionServerAccounting() {
     return regionServerAccounting;
-  }
-
-  /**
-   * @param r Region to get RegionLoad for.
-   * @param regionLoadBldr the RegionLoad.Builder, can be null
-   * @param regionSpecifier the RegionSpecifier.Builder, can be null
-   * @return RegionLoad instance.
-   */
-  RegionLoad createRegionLoad(final HRegion r, RegionLoad.Builder regionLoadBldr,
-      RegionSpecifier.Builder regionSpecifier) throws IOException {
-    byte[] name = r.getRegionInfo().getRegionName();
-    int stores = 0;
-    int storefiles = 0;
-    int storeRefCount = 0;
-    int maxCompactedStoreFileRefCount = 0;
-    int storeUncompressedSizeMB = 0;
-    int storefileSizeMB = 0;
-    int memstoreSizeMB = (int) (r.getMemStoreDataSize() / 1024 / 1024);
-    long storefileIndexSizeKB = 0;
-    int rootLevelIndexSizeKB = 0;
-    int totalStaticIndexSizeKB = 0;
-    int totalStaticBloomSizeKB = 0;
-    long totalCompactingKVs = 0;
-    long currentCompactedKVs = 0;
-    List<HStore> storeList = r.getStores();
-    stores += storeList.size();
-    for (HStore store : storeList) {
-      storefiles += store.getStorefilesCount();
-      int currentStoreRefCount = store.getStoreRefCount();
-      storeRefCount += currentStoreRefCount;
-      int currentMaxCompactedStoreFileRefCount = store.getMaxCompactedStoreFileRefCount();
-      maxCompactedStoreFileRefCount = Math.max(maxCompactedStoreFileRefCount,
-        currentMaxCompactedStoreFileRefCount);
-      storeUncompressedSizeMB += (int) (store.getStoreSizeUncompressed() / 1024 / 1024);
-      storefileSizeMB += (int) (store.getStorefilesSize() / 1024 / 1024);
-      //TODO: storefileIndexSizeKB is same with rootLevelIndexSizeKB?
-      storefileIndexSizeKB += store.getStorefilesRootLevelIndexSize() / 1024;
-      CompactionProgress progress = store.getCompactionProgress();
-      if (progress != null) {
-        totalCompactingKVs += progress.getTotalCompactingKVs();
-        currentCompactedKVs += progress.currentCompactedKVs;
-      }
-      rootLevelIndexSizeKB += (int) (store.getStorefilesRootLevelIndexSize() / 1024);
-      totalStaticIndexSizeKB += (int) (store.getTotalStaticIndexSize() / 1024);
-      totalStaticBloomSizeKB += (int) (store.getTotalStaticBloomSize() / 1024);
-    }
-
-    HDFSBlocksDistribution hdfsBd = r.getHDFSBlocksDistribution();
-    float dataLocality = hdfsBd.getBlockLocalityIndex(serverName.getHostname());
-    float dataLocalityForSsd = hdfsBd.getBlockLocalityIndexForSsd(serverName.getHostname());
-    long blocksTotalWeight = hdfsBd.getUniqueBlocksTotalWeight();
-    long blocksLocalWeight = hdfsBd.getBlocksLocalWeight(serverName.getHostname());
-    long blocksLocalWithSsdWeight = hdfsBd.getBlocksLocalWithSsdWeight(serverName.getHostname());
-    if (regionLoadBldr == null) {
-      regionLoadBldr = RegionLoad.newBuilder();
-    }
-    if (regionSpecifier == null) {
-      regionSpecifier = RegionSpecifier.newBuilder();
-    }
-    regionSpecifier.setType(RegionSpecifierType.REGION_NAME);
-    regionSpecifier.setValue(UnsafeByteOperations.unsafeWrap(name));
-    regionLoadBldr.setRegionSpecifier(regionSpecifier.build())
-      .setStores(stores)
-      .setStorefiles(storefiles)
-      .setStoreRefCount(storeRefCount)
-      .setMaxCompactedStoreFileRefCount(maxCompactedStoreFileRefCount)
-      .setStoreUncompressedSizeMB(storeUncompressedSizeMB)
-      .setStorefileSizeMB(storefileSizeMB)
-      .setMemStoreSizeMB(memstoreSizeMB)
-      .setStorefileIndexSizeKB(storefileIndexSizeKB)
-      .setRootIndexSizeKB(rootLevelIndexSizeKB)
-      .setTotalStaticIndexSizeKB(totalStaticIndexSizeKB)
-      .setTotalStaticBloomSizeKB(totalStaticBloomSizeKB)
-      .setReadRequestsCount(r.getReadRequestsCount())
-      .setCpRequestsCount(r.getCpRequestsCount())
-      .setFilteredReadRequestsCount(r.getFilteredReadRequestsCount())
-      .setWriteRequestsCount(r.getWriteRequestsCount())
-      .setTotalCompactingKVs(totalCompactingKVs)
-      .setCurrentCompactedKVs(currentCompactedKVs)
-      .setDataLocality(dataLocality)
-      .setDataLocalityForSsd(dataLocalityForSsd)
-      .setBlocksLocalWeight(blocksLocalWeight)
-      .setBlocksLocalWithSsdWeight(blocksLocalWithSsdWeight)
-      .setBlocksTotalWeight(blocksTotalWeight)
-      .setLastMajorCompactionTs(r.getOldestHfileTs(true));
-    r.setCompleteSequenceId(regionLoadBldr);
-
-    return regionLoadBldr.build();
-  }
-
-  private UserLoad createUserLoad(String user, MetricsUserSource userSource) {
-    UserLoad.Builder userLoadBldr = UserLoad.newBuilder();
-    userLoadBldr.setUserName(user);
-    userSource.getClientMetrics().values().stream().map(
-      clientMetrics -> ClusterStatusProtos.ClientMetrics.newBuilder()
-            .setHostName(clientMetrics.getHostName())
-            .setWriteRequestsCount(clientMetrics.getWriteRequestsCount())
-            .setFilteredRequestsCount(clientMetrics.getFilteredReadRequests())
-            .setReadRequestsCount(clientMetrics.getReadRequestsCount()).build())
-        .forEach(userLoadBldr::addClientMetrics);
-    return userLoadBldr.build();
-  }
-
-  public RegionLoad createRegionLoad(final String encodedRegionName) throws IOException {
-    HRegion r = onlineRegions.get(encodedRegionName);
-    return r != null ? createRegionLoad(r, null, null) : null;
   }
 
   /**
@@ -1945,8 +1731,7 @@ public class HRegionServer extends Thread implements
         HConstants.DEFAULT_EXECUTOR_STATUS_COLLECT_ENABLED)) {
       int sleepTime = this.conf.getInt(ExecutorStatusChore.WAKE_FREQ,
           ExecutorStatusChore.DEFAULT_WAKE_FREQ);
-      executorStatusChore = new ExecutorStatusChore(sleepTime, this, this.getExecutorService(),
-          this.metricsRegionServer.getMetricsSource());
+      executorStatusChore = new ExecutorStatusChore(sleepTime, this, this.getExecutorService());
     }
 
     this.walRoller = new LogRoller(this);
@@ -2237,10 +2022,10 @@ public class HRegionServer extends Thread implements
   public void stop(final String msg, final boolean force, final User user) {
     if (!this.stopped) {
       LOG.info("***** STOPPING region server '" + this + "' *****");
-      if (this.rsHost != null) {
+      if (this.regionServerCoprocessorHost != null) {
         // when forced via abort don't allow CPs to override
         try {
-          this.rsHost.preStop(msg, user);
+          this.regionServerCoprocessorHost.preStop(msg, user);
         } catch (IOException ioe) {
           if (!force) {
             LOG.warn("The region server did not stop", ioe);
@@ -2595,9 +2380,6 @@ public class HRegionServer extends Thread implements
       this.cacheFlusher.join();
     }
 
-    if (this.spanReceiverHost != null) {
-      this.spanReceiverHost.closeReceivers();
-    }
     if (this.walRoller != null) {
       this.walRoller.close();
     }
@@ -3009,7 +2791,7 @@ public class HRegionServer extends Thread implements
   }
 
   public RegionServerCoprocessorHost getRegionServerCoprocessorHost(){
-    return this.rsHost;
+    return this.regionServerCoprocessorHost;
   }
 
   @Override
@@ -3191,7 +2973,7 @@ public class HRegionServer extends Thread implements
         LOG.debug("Exception details for failure to fetch wal coprocessor information.", exception);
       }
     }
-    coprocessors.addAll(rsHost.getCoprocessors());
+    coprocessors.addAll(regionServerCoprocessorHost.getCoprocessors());
     return coprocessors.toArray(new String[0]);
   }
 
@@ -3312,7 +3094,6 @@ public class HRegionServer extends Thread implements
   @Override
   public boolean removeRegion(final HRegion r, ServerName destination) {
     HRegion toReturn = this.onlineRegions.remove(r.getRegionInfo().getEncodedName());
-    metricsRegionServerImpl.requestsCountCache.remove(r.getRegionInfo().getEncodedName());
     if (destination != null) {
       long closeSeqNum = r.getMaxFlushedSeqId();
       if (closeSeqNum == HConstants.NO_SEQNUM) {
@@ -3719,7 +3500,7 @@ public class HRegionServer extends Thread implements
 
   @Override
   public HeapMemoryManager getHeapMemoryManager() {
-    return hMemManager;
+    return heapMemoryManager;
   }
 
   MemStoreFlusher getMemStoreFlusher() {
@@ -3761,11 +3542,6 @@ public class HRegionServer extends Thread implements
     } catch (IOException e) {
       LOG.warn("Failed to initialize SuperUsers on reloading of the configuration");
     }
-  }
-
-  @Override
-  public MetricsRegionServer getMetrics() {
-    return metricsRegionServer;
   }
 
   @Override

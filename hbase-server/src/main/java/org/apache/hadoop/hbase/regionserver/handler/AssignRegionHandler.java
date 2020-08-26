@@ -143,14 +143,6 @@ public class AssignRegionHandler extends EventHandler {
     // Cache the open region procedure id after report region transition succeed.
     rs.finishRegionProcedure(openProcId);
     Boolean current = rs.getRegionsInTransitionInRS().remove(regionInfo.getEncodedNameAsBytes());
-    if (current == null) {
-      // Should NEVER happen, but let's be paranoid.
-      LOG.error("Bad state: we've just opened a region that was NOT in transition. Region={}",
-        regionName);
-    } else if (!current) {
-      // Should NEVER happen, but let's be paranoid.
-      LOG.error("Bad state: we've just opened a region that was closing. Region={}", regionName);
-    }
   }
 
   @Override

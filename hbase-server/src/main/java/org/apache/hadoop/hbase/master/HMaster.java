@@ -1060,7 +1060,6 @@ public class HMaster extends HRegionServer implements MasterServices {
     // server that is both Master and RegionServer. Needs more thought. TODO.
     String statusStr = "Wait for region servers to report in";
     status.setStatus(statusStr);
-    LOG.info(Objects.toString(status));
     waitForRegionServers(status);
 
     // Check if master is shutting down because issue initializing regionservers or balancer.

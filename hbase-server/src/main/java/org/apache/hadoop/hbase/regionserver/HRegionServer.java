@@ -635,7 +635,6 @@ public class HRegionServer extends Thread implements
       spanReceiverHost = SpanReceiverHost.getInstance(getConfiguration());
 
       this.configurationManager = new ConfigurationManager();
-      setupWindows(getConfiguration(), getConfigurationManager());
 
       // Some unit tests don't need a cluster, so no zookeeper at all
       if (!conf.getBoolean("hbase.testing.nocluster", false)) {
@@ -694,18 +693,6 @@ public class HRegionServer extends Thread implements
       }
     } else {
       return hostname;
-    }
-  }
-
-  /**
-   * If running on Windows, do windows-specific setup.
-   */
-  private static void setupWindows(final Configuration conf, ConfigurationManager cm) {
-    if (!SystemUtils.IS_OS_WINDOWS) {
-      Signal.handle(new Signal("HUP"), signal -> {
-        conf.reloadConfiguration();
-        cm.notifyAllObservers(conf);
-      });
     }
   }
 
@@ -783,10 +770,6 @@ public class HRegionServer extends Thread implements
     }
 
     coprocessorServiceHandlers.put(serviceName, instance);
-    if (LOG.isDebugEnabled()) {
-      LOG.debug(
-        "Registered regionserver coprocessor executorService: executorService=" + serviceName);
-    }
     return true;
   }
 

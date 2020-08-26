@@ -28,7 +28,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -421,7 +420,7 @@ public class HMaster extends HRegionServer implements MasterServices {
   // the key is table name, the value is the number of compactions in that table.
   private Map<TableName, AtomicInteger> mobCompactionStates = Maps.newConcurrentMap();
 
-  MasterCoprocessorHost cpHost;
+  MasterCoprocessorHost masterCoprocessorHost;
 
   private final boolean preLoadTableDescriptors;
 
@@ -1020,7 +1019,7 @@ public class HMaster extends HRegionServer implements MasterServices {
       }
       // initialize master side coprocessors before we start handling requests
       status.setStatus("Initializing master coprocessors");
-      this.cpHost = new MasterCoprocessorHost(this, this.conf);
+      this.masterCoprocessorHost = new MasterCoprocessorHost(this, this.conf);
     }
 
     // Checking if meta needs initializing.
@@ -1120,9 +1119,9 @@ public class HMaster extends HRegionServer implements MasterServices {
     status.setStatus("Starting cluster schema service");
     initClusterSchemaService();
 
-    if (this.cpHost != null) {
+    if (this.masterCoprocessorHost != null) {
       try {
-        this.cpHost.preMasterInitialization();
+        this.masterCoprocessorHost.preMasterInitialization();
       } catch (IOException e) {
         LOG.error("Coprocessor preMasterInitialization() hook failed", e);
       }
@@ -1183,10 +1182,10 @@ public class HMaster extends HRegionServer implements MasterServices {
     initMobCleaner();
 
     status.setStatus("Calling postStartMaster coprocessors");
-    if (this.cpHost != null) {
+    if (this.masterCoprocessorHost != null) {
       // don't let cp initialization errors kill the master
       try {
-        this.cpHost.postStartMaster();
+        this.masterCoprocessorHost.postStartMaster();
       } catch (IOException ioe) {
         LOG.error("Coprocessor postStartMaster() hook failed", ioe);
       }
@@ -1790,9 +1789,9 @@ public class HMaster extends HRegionServer implements MasterServices {
         return false;
       }
 
-      if (this.cpHost != null) {
+      if (this.masterCoprocessorHost != null) {
         try {
-          if (this.cpHost.preBalance()) {
+          if (this.masterCoprocessorHost.preBalance()) {
             LOG.debug("Coprocessor bypassing balancer request");
             return false;
           }
@@ -1821,9 +1820,9 @@ public class HMaster extends HRegionServer implements MasterServices {
 
       List<RegionPlan> sucRPs = executeRegionPlansWithThrottling(plans);
 
-      if (this.cpHost != null) {
+      if (this.masterCoprocessorHost != null) {
         try {
-          this.cpHost.postBalance(sucRPs);
+          this.masterCoprocessorHost.postBalance(sucRPs);
         } catch (IOException ioe) {
           // balancing already succeeded so don't change the result
           LOG.error("Error invoking master coprocessor postBalance()", ioe);
@@ -1920,7 +1919,6 @@ public class HMaster extends HRegionServer implements MasterServices {
       return true;
     }
 
-    int affectedTables = 0;
     try {
       final Set<TableName> matchingTables = getTableDescriptors(new LinkedList<>(),
         ntfp.getNamespace(), ntfp.getRegex(), ntfp.getTableNames(), false)
@@ -1938,10 +1936,8 @@ public class HMaster extends HRegionServer implements MasterServices {
         if (table.isSystemTable()) {
           continue;
         }
-        final TableDescriptor tblDesc = getTableDescriptors().get(table);
-        if (tblDesc != null && !tblDesc.isNormalizationEnabled()) {
-          LOG.debug(
-            "Skipping table {} because normalization is disabled in its table properties.", table);
+        final TableDescriptor tableDescriptor = getTableDescriptors().get(table);
+        if (tableDescriptor != null && !tableDescriptor.isNormalizationEnabled()) {
           continue;
         }
 
@@ -1950,17 +1946,15 @@ public class HMaster extends HRegionServer implements MasterServices {
           return false;
         }
 
-        final List<NormalizationPlan> plans = normalizer.computePlansForTable(table);
-        if (CollectionUtils.isEmpty(plans)) {
-          LOG.debug("No normalization required for table {}.", table);
+        final List<NormalizationPlan> normalizationPlans = normalizer.computePlansForTable(table);
+        if (CollectionUtils.isEmpty(normalizationPlans)) {
           continue;
         }
 
-        affectedTables++;
         // as of this writing, `plan.submit()` is non-blocking and uses Async Admin APIs to
         // submit task , so there's no artificial rate-
         // limiting of merge/split requests due to this serial loop.
-        for (NormalizationPlan plan : plans) {
+        for (NormalizationPlan plan : normalizationPlans) {
           long procId = plan.submit(this);
           submittedPlanProcIds.add(procId);
           if (plan.getType() == PlanType.SPLIT) {
@@ -1970,10 +1964,6 @@ public class HMaster extends HRegionServer implements MasterServices {
           }
         }
       }
-      final long endTime = EnvironmentEdgeManager.currentTime();
-      LOG.info("Normalizer ran successfully in {}. Submitted {} plans, affecting {} tables.",
-        Duration.ofMillis(endTime - startTime), submittedPlanProcIds.size(), affectedTables);
-      LOG.debug("Normalizer submitted procID list: {}", submittedPlanProcIds);
     } finally {
       normalizationInProgressLock.unlock();
     }
@@ -2137,8 +2127,8 @@ public class HMaster extends HRegionServer implements MasterServices {
 
     try {
       checkInitialized();
-      if (this.cpHost != null) {
-        this.cpHost.preMove(hri, rp.getSource(), rp.getDestination());
+      if (this.masterCoprocessorHost != null) {
+        this.masterCoprocessorHost.preMove(hri, rp.getSource(), rp.getDestination());
       }
 
       TransitRegionStateProcedure proc =
@@ -2157,8 +2147,8 @@ public class HMaster extends HRegionServer implements MasterServices {
       } catch (InterruptedException | ExecutionException e) {
         throw new HBaseIOException(e);
       }
-      if (this.cpHost != null) {
-        this.cpHost.postMove(hri, rp.getSource(), rp.getDestination());
+      if (this.masterCoprocessorHost != null) {
+        this.masterCoprocessorHost.postMove(hri, rp.getSource(), rp.getDestination());
       }
     } catch (IOException ioe) {
       if (ioe instanceof HBaseIOException) {
@@ -2220,8 +2210,6 @@ public class HMaster extends HRegionServer implements MasterServices {
     }
 
     RegionInfo[] newRegions = ModifyRegionUtils.createRegionInfos(tableDescriptor, null);
-
-    LOG.info(getClientIdAuditPrefix() + " create " + tableDescriptor);
 
     // This special create table is called locally to master.  Therefore, no RPC means no need
     // to use nonce to detect duplicated RPC call.
@@ -2643,7 +2631,7 @@ public class HMaster extends HRegionServer implements MasterServices {
           break;
         }
         case MASTER_COPROCESSORS: {
-          if (cpHost != null) {
+          if (masterCoprocessorHost != null) {
             builder.setMasterCoprocessorNames(Arrays.asList(getMasterCoprocessors()));
           }
           break;
@@ -2704,12 +2692,12 @@ public class HMaster extends HRegionServer implements MasterServices {
   }
 
   public ClusterMetrics getClusterMetrics(EnumSet<Option> options) throws IOException {
-    if (cpHost != null) {
-      cpHost.preGetClusterMetrics();
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.preGetClusterMetrics();
     }
     ClusterMetrics status = getClusterMetricsWithoutCoprocessor(options);
-    if (cpHost != null) {
-      cpHost.postGetClusterMetrics(status);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.postGetClusterMetrics(status);
     }
     return status;
   }
@@ -2832,7 +2820,7 @@ public class HMaster extends HRegionServer implements MasterServices {
       LOG.debug("Abort called but aborted={}, stopped={}", isAborted(), isStopped());
       return;
     }
-    if (cpHost != null) {
+    if (masterCoprocessorHost != null) {
       // HBASE-4014: dump a list of loaded coprocessors.
       LOG.error(HBaseMarkers.FATAL, "Master server abort: loaded coprocessors are: " +
           getLoadedCoprocessors());
@@ -2858,7 +2846,7 @@ public class HMaster extends HRegionServer implements MasterServices {
 
   @Override
   public MasterCoprocessorHost getMasterCoprocessorHost() {
-    return cpHost;
+    return masterCoprocessorHost;
   }
 
   @Override
@@ -2895,8 +2883,8 @@ public class HMaster extends HRegionServer implements MasterServices {
    * Master runs a coordinated stop of all RegionServers and then itself.
    */
   public void shutdown() throws IOException {
-    if (cpHost != null) {
-      cpHost.preShutdown();
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.preShutdown();
     }
 
     // Tell the servermanager cluster shutdown has been called. This makes it so when Master is
@@ -2928,8 +2916,8 @@ public class HMaster extends HRegionServer implements MasterServices {
   }
 
   public void stopMaster() throws IOException {
-    if (cpHost != null) {
-      cpHost.preStopMaster();
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.preStopMaster();
     }
     stop("Stopped by " + Thread.currentThread().getName());
   }
@@ -3246,9 +3234,9 @@ public class HMaster extends HRegionServer implements MasterServices {
    */
   NamespaceDescriptor getNamespace(String name) throws IOException {
     checkInitialized();
-    if (this.cpHost != null) this.cpHost.preGetNamespaceDescriptor(name);
+    if (this.masterCoprocessorHost != null) this.masterCoprocessorHost.preGetNamespaceDescriptor(name);
     NamespaceDescriptor nsd = this.clusterSchemaService.getNamespace(name);
-    if (this.cpHost != null) this.cpHost.postGetNamespaceDescriptor(nsd);
+    if (this.masterCoprocessorHost != null) this.masterCoprocessorHost.postGetNamespaceDescriptor(nsd);
     return nsd;
   }
 
@@ -3259,12 +3247,12 @@ public class HMaster extends HRegionServer implements MasterServices {
   List<NamespaceDescriptor> getNamespaces() throws IOException {
     checkInitialized();
     final List<NamespaceDescriptor> nsds = new ArrayList<>();
-    if (cpHost != null) {
-      cpHost.preListNamespaceDescriptors(nsds);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.preListNamespaceDescriptors(nsds);
     }
     nsds.addAll(this.clusterSchemaService.getNamespaces());
-    if (this.cpHost != null) {
-      this.cpHost.postListNamespaceDescriptors(nsds);
+    if (this.masterCoprocessorHost != null) {
+      this.masterCoprocessorHost.postListNamespaceDescriptors(nsds);
     }
     return nsds;
   }
@@ -3276,14 +3264,14 @@ public class HMaster extends HRegionServer implements MasterServices {
   public List<String> listNamespaces() throws IOException {
     checkInitialized();
     List<String> namespaces = new ArrayList<>();
-    if (cpHost != null) {
-      cpHost.preListNamespaces(namespaces);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.preListNamespaces(namespaces);
     }
     for (NamespaceDescriptor namespace : clusterSchemaService.getNamespaces()) {
       namespaces.add(namespace.getName());
     }
-    if (cpHost != null) {
-      cpHost.postListNamespaces(namespaces);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.postListNamespaces(namespaces);
     }
     return namespaces;
   }
@@ -3303,14 +3291,14 @@ public class HMaster extends HRegionServer implements MasterServices {
   @Override
   public boolean abortProcedure(final long procId, final boolean mayInterruptIfRunning)
       throws IOException {
-    if (cpHost != null) {
-      cpHost.preAbortProcedure(this.procedureExecutor, procId);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.preAbortProcedure(this.procedureExecutor, procId);
     }
 
     final boolean result = this.procedureExecutor.abort(procId, mayInterruptIfRunning);
 
-    if (cpHost != null) {
-      cpHost.postAbortProcedure();
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.postAbortProcedure();
     }
 
     return result;
@@ -3318,15 +3306,15 @@ public class HMaster extends HRegionServer implements MasterServices {
 
   @Override
   public List<Procedure<?>> getProcedures() throws IOException {
-    if (cpHost != null) {
-      cpHost.preGetProcedures();
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.preGetProcedures();
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     List<Procedure<?>> procList = (List) this.procedureExecutor.getProcedures();
 
-    if (cpHost != null) {
-      cpHost.postGetProcedures(procList);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.postGetProcedures(procList);
     }
 
     return procList;
@@ -3334,8 +3322,8 @@ public class HMaster extends HRegionServer implements MasterServices {
 
   @Override
   public List<LockedResource> getLocks() throws IOException {
-    if (cpHost != null) {
-      cpHost.preGetLocks();
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.preGetLocks();
     }
 
     MasterProcedureScheduler procedureScheduler =
@@ -3343,8 +3331,8 @@ public class HMaster extends HRegionServer implements MasterServices {
 
     final List<LockedResource> lockedResources = procedureScheduler.getLocks();
 
-    if (cpHost != null) {
-      cpHost.postGetLocks(lockedResources);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.postGetLocks(lockedResources);
     }
 
     return lockedResources;
@@ -3362,12 +3350,12 @@ public class HMaster extends HRegionServer implements MasterServices {
       final List<TableName> tableNameList, final boolean includeSysTables)
   throws IOException {
     List<TableDescriptor> htds = new ArrayList<>();
-    if (cpHost != null) {
-      cpHost.preGetTableDescriptors(tableNameList, htds, regex);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.preGetTableDescriptors(tableNameList, htds, regex);
     }
     htds = getTableDescriptors(htds, namespace, regex, tableNameList, includeSysTables);
-    if (cpHost != null) {
-      cpHost.postGetTableDescriptors(tableNameList, htds, regex);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.postGetTableDescriptors(tableNameList, htds, regex);
     }
     return htds;
   }
@@ -3382,12 +3370,12 @@ public class HMaster extends HRegionServer implements MasterServices {
   public List<TableName> listTableNames(final String namespace, final String regex,
       final boolean includeSysTables) throws IOException {
     List<TableDescriptor> htds = new ArrayList<>();
-    if (cpHost != null) {
-      cpHost.preGetTableNames(htds, regex);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.preGetTableNames(htds, regex);
     }
     htds = getTableDescriptors(htds, namespace, regex, null, includeSysTables);
-    if (cpHost != null) {
-      cpHost.postGetTableNames(htds, regex);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.postGetTableNames(htds, regex);
     }
     List<TableName> result = new ArrayList<>(htds.size());
     for (TableDescriptor htd: htds) result.add(htd.getTableName());
@@ -3621,13 +3609,13 @@ public class HMaster extends HRegionServer implements MasterServices {
   @Override
   public ReplicationPeerConfig getReplicationPeerConfig(String peerId)
       throws ReplicationException, IOException {
-    if (cpHost != null) {
-      cpHost.preGetReplicationPeerConfig(peerId);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.preGetReplicationPeerConfig(peerId);
     }
     ReplicationPeerConfig peerConfig = this.replicationPeerManager.getPeerConfig(peerId)
         .orElseThrow(() -> new ReplicationPeerNotFoundException(peerId));
-    if (cpHost != null) {
-      cpHost.postGetReplicationPeerConfig(peerId);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.postGetReplicationPeerConfig(peerId);
     }
     return peerConfig;
   }
@@ -3641,14 +3629,14 @@ public class HMaster extends HRegionServer implements MasterServices {
   @Override
   public List<ReplicationPeerDescription> listReplicationPeers(String regex)
       throws ReplicationException, IOException {
-    if (cpHost != null) {
-      cpHost.preListReplicationPeers(regex);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.preListReplicationPeers(regex);
     }
     Pattern pattern = regex == null ? null : Pattern.compile(regex);
     List<ReplicationPeerDescription> peers =
       this.replicationPeerManager.listPeers(pattern);
-    if (cpHost != null) {
-      cpHost.postListReplicationPeers(regex);
+    if (masterCoprocessorHost != null) {
+      masterCoprocessorHost.postListReplicationPeers(regex);
     }
     return peers;
   }

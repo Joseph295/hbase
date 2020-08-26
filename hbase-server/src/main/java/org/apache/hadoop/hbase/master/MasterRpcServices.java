@@ -496,8 +496,8 @@ public class MasterRpcServices extends RSRpcServices implements
     boolean oldValue = master.loadBalancerTracker.isBalancerOn();
     boolean newValue = b;
     try {
-      if (master.cpHost != null) {
-        master.cpHost.preBalanceSwitch(newValue);
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.preBalanceSwitch(newValue);
       }
       try {
         if (mode == BalanceSwitchMode.SYNC) {
@@ -511,8 +511,8 @@ public class MasterRpcServices extends RSRpcServices implements
         throw new IOException(ke);
       }
       LOG.info(master.getClientIdAuditPrefix() + " set balanceSwitch=" + newValue);
-      if (master.cpHost != null) {
-        master.cpHost.postBalanceSwitch(oldValue, newValue);
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.postBalanceSwitch(oldValue, newValue);
       }
       master.getLoadBalancer().updateBalancerStatus(newValue);
     } catch (IOException ioe) {
@@ -669,13 +669,13 @@ public class MasterRpcServices extends RSRpcServices implements
       }
 
       final AssignRegionResponse arr = AssignRegionResponse.newBuilder().build();
-      if (master.cpHost != null) {
-        master.cpHost.preAssign(regionInfo);
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.preAssign(regionInfo);
       }
       LOG.info(master.getClientIdAuditPrefix() + " assign " + regionInfo.getRegionNameAsString());
       master.getAssignmentManager().assign(regionInfo);
-      if (master.cpHost != null) {
-        master.cpHost.postAssign(regionInfo);
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.postAssign(regionInfo);
       }
       return arr;
     } catch (IOException ioe) {
@@ -1500,13 +1500,13 @@ public class MasterRpcServices extends RSRpcServices implements
         throw new UnknownRegionException(Bytes.toStringBinary(regionName));
       }
 
-      if (master.cpHost != null) {
-        master.cpHost.preRegionOffline(hri);
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.preRegionOffline(hri);
       }
       LOG.info(master.getClientIdAuditPrefix() + " offline " + hri.getRegionNameAsString());
       master.getAssignmentManager().offlineRegion(hri);
-      if (master.cpHost != null) {
-        master.cpHost.postRegionOffline(hri);
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.postRegionOffline(hri);
       }
     } catch (IOException ioe) {
       throw new ServiceException(ioe);
@@ -1712,14 +1712,14 @@ public class MasterRpcServices extends RSRpcServices implements
       }
 
       RegionInfo hri = pair.getFirst();
-      if (master.cpHost != null) {
-        master.cpHost.preUnassign(hri, force);
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.preUnassign(hri, force);
       }
       LOG.debug(master.getClientIdAuditPrefix() + " unassign " + hri.getRegionNameAsString()
           + " in current location if it is online and reassign.force=" + force);
       master.getAssignmentManager().unassign(hri);
-      if (master.cpHost != null) {
-        master.cpHost.postUnassign(hri, force);
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.postUnassign(hri, force);
       }
 
       return urr;
@@ -1887,12 +1887,12 @@ public class MasterRpcServices extends RSRpcServices implements
         MasterSwitchType switchType = convert(masterSwitchType);
         boolean oldValue = master.isSplitOrMergeEnabled(switchType);
         response.addPrevValue(oldValue);
-        if (master.cpHost != null) {
-          master.cpHost.preSetSplitOrMergeEnabled(newValue, switchType);
+        if (master.masterCoprocessorHost != null) {
+          master.masterCoprocessorHost.preSetSplitOrMergeEnabled(newValue, switchType);
         }
         master.getSplitOrMergeTracker().setSplitOrMergeEnabled(newValue, switchType);
-        if (master.cpHost != null) {
-          master.cpHost.postSetSplitOrMergeEnabled(newValue, switchType);
+        if (master.masterCoprocessorHost != null) {
+          master.masterCoprocessorHost.postSetSplitOrMergeEnabled(newValue, switchType);
         }
       }
     } catch (IOException e) {
@@ -1972,7 +1972,8 @@ public class MasterRpcServices extends RSRpcServices implements
       }
       // A coprocessor that implements AccessControlService can provide AUTHORIZATION and
       // CELL_AUTHORIZATION
-      if (master.cpHost != null && hasAccessControlServiceCoprocessor(master.cpHost)) {
+      if (master.masterCoprocessorHost
+		      != null && hasAccessControlServiceCoprocessor(master.masterCoprocessorHost)) {
         if (AccessChecker.isAuthorizationSupported(master.getConfiguration())) {
           capabilities.add(SecurityCapabilitiesResponse.Capability.AUTHORIZATION);
         }
@@ -1981,7 +1982,8 @@ public class MasterRpcServices extends RSRpcServices implements
         }
       }
       // A coprocessor that implements VisibilityLabelsService can provide CELL_VISIBILITY.
-      if (master.cpHost != null && hasVisibilityLabelsServiceCoprocessor(master.cpHost)) {
+      if (master.masterCoprocessorHost
+		      != null && hasVisibilityLabelsServiceCoprocessor(master.masterCoprocessorHost)) {
         if (VisibilityController.isCellAuthorizationSupported(master.getConfiguration())) {
           capabilities.add(SecurityCapabilitiesResponse.Capability.CELL_VISIBILITY);
         }
@@ -2152,14 +2154,14 @@ public class MasterRpcServices extends RSRpcServices implements
         ListDecommissionedRegionServersResponse.newBuilder();
     try {
       master.checkInitialized();
-      if (master.cpHost != null) {
-        master.cpHost.preListDecommissionedRegionServers();
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.preListDecommissionedRegionServers();
       }
       List<ServerName> servers = master.listDecommissionedRegionServers();
       response.addAllServerName((servers.stream().map(server -> ProtobufUtil.toServerName(server)))
           .collect(Collectors.toList()));
-      if (master.cpHost != null) {
-        master.cpHost.postListDecommissionedRegionServers();
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.postListDecommissionedRegionServers();
       }
     } catch (IOException io) {
       throw new ServiceException(io);
@@ -2176,12 +2178,12 @@ public class MasterRpcServices extends RSRpcServices implements
       List<ServerName> servers = request.getServerNameList().stream()
           .map(pbServer -> ProtobufUtil.toServerName(pbServer)).collect(Collectors.toList());
       boolean offload = request.getOffload();
-      if (master.cpHost != null) {
-        master.cpHost.preDecommissionRegionServers(servers, offload);
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.preDecommissionRegionServers(servers, offload);
       }
       master.decommissionRegionServers(servers, offload);
-      if (master.cpHost != null) {
-        master.cpHost.postDecommissionRegionServers(servers, offload);
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.postDecommissionRegionServers(servers, offload);
       }
     } catch (IOException io) {
       throw new ServiceException(io);
@@ -2199,12 +2201,12 @@ public class MasterRpcServices extends RSRpcServices implements
       List<byte[]> encodedRegionNames = request.getRegionList().stream()
           .map(regionSpecifier -> regionSpecifier.getValue().toByteArray())
           .collect(Collectors.toList());
-      if (master.cpHost != null) {
-        master.cpHost.preRecommissionRegionServer(server, encodedRegionNames);
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.preRecommissionRegionServer(server, encodedRegionNames);
       }
       master.recommissionRegionServer(server, encodedRegionNames);
-      if (master.cpHost != null) {
-        master.cpHost.postRecommissionRegionServer(server, encodedRegionNames);
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.postRecommissionRegionServer(server, encodedRegionNames);
       }
     } catch (IOException io) {
       throw new ServiceException(io);
@@ -2404,8 +2406,8 @@ public class MasterRpcServices extends RSRpcServices implements
     ClearDeadServersResponse.Builder response = ClearDeadServersResponse.newBuilder();
     try {
       master.checkInitialized();
-      if (master.cpHost != null) {
-        master.cpHost.preClearDeadServers();
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.preClearDeadServers();
       }
 
       if (master.getServerManager().areDeadServersInProgress()) {
@@ -2426,8 +2428,8 @@ public class MasterRpcServices extends RSRpcServices implements
         LOG.info("Remove decommissioned servers {} from RSGroup done", clearedServers);
       }
 
-      if (master.cpHost != null) {
-        master.cpHost.postClearDeadServers(
+      if (master.masterCoprocessorHost != null) {
+        master.masterCoprocessorHost.postClearDeadServers(
             ProtobufUtil.toServerNameList(request.getServerNameList()),
             ProtobufUtil.toServerNameList(response.getServerNameList()));
       }
@@ -2735,16 +2737,17 @@ public class MasterRpcServices extends RSRpcServices implements
       throws ServiceException {
     try {
       master.checkInitialized();
-      if (master.cpHost != null && hasAccessControlServiceCoprocessor(master.cpHost)) {
+      if (master.masterCoprocessorHost
+		      != null && hasAccessControlServiceCoprocessor(master.masterCoprocessorHost)) {
         final UserPermission perm =
             ShadedAccessControlUtil.toUserPermission(request.getUserPermission());
         boolean mergeExistingPermissions = request.getMergeExistingPermissions();
-        master.cpHost.preGrant(perm, mergeExistingPermissions);
+        master.masterCoprocessorHost.preGrant(perm, mergeExistingPermissions);
         try (Table table = master.getConnection().getTable(PermissionStorage.ACL_TABLE_NAME)) {
           PermissionStorage.addUserPermission(getConfiguration(), perm, table,
             mergeExistingPermissions);
         }
-        master.cpHost.postGrant(perm, mergeExistingPermissions);
+        master.masterCoprocessorHost.postGrant(perm, mergeExistingPermissions);
         User caller = RpcServer.getRequestUser().orElse(null);
         if (AUDITLOG.isTraceEnabled()) {
           // audit log should store permission changes in addition to auth results
@@ -2767,14 +2770,15 @@ public class MasterRpcServices extends RSRpcServices implements
       throws ServiceException {
     try {
       master.checkInitialized();
-      if (master.cpHost != null && hasAccessControlServiceCoprocessor(master.cpHost)) {
+      if (master.masterCoprocessorHost
+		      != null && hasAccessControlServiceCoprocessor(master.masterCoprocessorHost)) {
         final UserPermission userPermission =
             ShadedAccessControlUtil.toUserPermission(request.getUserPermission());
-        master.cpHost.preRevoke(userPermission);
+        master.masterCoprocessorHost.preRevoke(userPermission);
         try (Table table = master.getConnection().getTable(PermissionStorage.ACL_TABLE_NAME)) {
           PermissionStorage.removeUserPermission(master.getConfiguration(), userPermission, table);
         }
-        master.cpHost.postRevoke(userPermission);
+        master.masterCoprocessorHost.postRevoke(userPermission);
         User caller = RpcServer.getRequestUser().orElse(null);
         if (AUDITLOG.isTraceEnabled()) {
           // audit log should record all permission changes
@@ -2797,7 +2801,8 @@ public class MasterRpcServices extends RSRpcServices implements
       GetUserPermissionsRequest request) throws ServiceException {
     try {
       master.checkInitialized();
-      if (master.cpHost != null && hasAccessControlServiceCoprocessor(master.cpHost)) {
+      if (master.masterCoprocessorHost
+		      != null && hasAccessControlServiceCoprocessor(master.masterCoprocessorHost)) {
         final String userName = request.hasUserName() ? request.getUserName().toStringUtf8() : null;
         String namespace =
             request.hasNamespaceName() ? request.getNamespaceName().toStringUtf8() : null;
@@ -2851,7 +2856,8 @@ public class MasterRpcServices extends RSRpcServices implements
       HasUserPermissionsRequest request) throws ServiceException {
     try {
       master.checkInitialized();
-      if (master.cpHost != null && hasAccessControlServiceCoprocessor(master.cpHost)) {
+      if (master.masterCoprocessorHost
+		      != null && hasAccessControlServiceCoprocessor(master.masterCoprocessorHost)) {
         User caller = RpcServer.getRequestUser().orElse(null);
         String userName =
             request.hasUserName() ? request.getUserName().toStringUtf8() : caller.getShortName();

@@ -1486,21 +1486,13 @@ public class HMaster extends HRegionServer implements MasterServices {
     this.snapshotCleanerChore = new SnapshotCleanerChore(this, conf, getSnapshotManager());
     if (isSnapshotChoreEnabled) {
       getChoreService().scheduleChore(this.snapshotCleanerChore);
-    } else {
-      if (LOG.isTraceEnabled()) {
-        LOG.trace("Snapshot Cleaner Chore is disabled. Not starting up the chore..");
-      }
     }
     serviceStarted = true;
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("Started service threads");
-    }
   }
 
   @Override
   protected void stopServiceThreads() {
     if (masterJettyServer != null) {
-      LOG.info("Stopping master jetty server");
       try {
         masterJettyServer.stop();
       } catch (Exception e) {
@@ -1514,8 +1506,6 @@ public class HMaster extends HRegionServer implements MasterServices {
       cleanerPool.shutdownNow();
       cleanerPool = null;
     }
-
-    LOG.debug("Stopping service threads");
 
     // stop procedure executor prior to other services such as server manager and assignment
     // manager, as these services are important for some running procedures. See HBASE-24117 for

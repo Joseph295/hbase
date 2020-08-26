@@ -17,7 +17,6 @@
  */
 package org.apache.hadoop.hbase.procedure2.store.region;
 
-import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -34,11 +33,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseClassTestRule;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
-import org.apache.hadoop.hbase.HBaseIOException;
 import org.apache.hadoop.hbase.Server;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.RegionInfoBuilder;
-import org.apache.hadoop.hbase.master.assignment.AssignProcedure;
 import org.apache.hadoop.hbase.master.region.MasterRegion;
 import org.apache.hadoop.hbase.master.region.MasterRegionFactory;
 import org.apache.hadoop.hbase.procedure2.ProcedureTestingUtility.LoadCounter;
@@ -156,21 +151,5 @@ public class TestRegionProcedureStoreMigration {
     Path oldProcWALDir = new Path(testDir, WALProcedureStore.MASTER_PROCEDURE_LOGDIR);
     // make sure the old proc wal directory has been deleted.
     assertFalse(fs.exists(oldProcWALDir));
-  }
-
-  @Test
-  public void testMigrateWithUnsupportedProcedures() throws IOException {
-    AssignProcedure assignProc = new AssignProcedure();
-    assignProc.setProcId(1L);
-    assignProc.setRegionInfo(RegionInfoBuilder.newBuilder(TableName.valueOf("table")).build());
-    walStore.insert(assignProc, null);
-    walStore.stop(true);
-
-    try {
-      store = RegionProcedureStoreTestHelper.createStore(server, region, new LoadCounter());
-      fail("Should fail since AssignProcedure is not supported");
-    } catch (HBaseIOException e) {
-      assertThat(e.getMessage(), startsWith("Unsupported"));
-    }
   }
 }

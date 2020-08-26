@@ -636,11 +636,6 @@ class MockRegionServer implements AdminProtos.AdminService.BlockingInterface,
   }
 
   @Override
-  public MetricsRegionServer getMetrics() {
-    return null;
-  }
-
-  @Override
   public EntityLock regionLock(List<RegionInfo> regionInfos, String description, Abortable abort)
       throws IOException {
     return null;

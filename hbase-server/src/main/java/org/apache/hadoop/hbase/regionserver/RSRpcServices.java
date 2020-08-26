@@ -721,11 +721,6 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
         r = region.getCoprocessorHost().postAppend(append, r);
       }
     }
-    if (regionServer.getMetrics() != null) {
-      regionServer.getMetrics().updateAppend(
-          region.getTableDescriptor().getTableName(),
-        EnvironmentEdgeManager.currentTime() - before);
-    }
     return r == null ? Result.EMPTY_RESULT : r;
   }
 
@@ -766,12 +761,6 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
       if (region.getCoprocessorHost() != null) {
         r = region.getCoprocessorHost().postIncrement(increment, r);
       }
-    }
-    final MetricsRegionServer metricsRegionServer = regionServer.getMetrics();
-    if (metricsRegionServer != null) {
-      metricsRegionServer.updateIncrement(
-          region.getTableDescriptor().getTableName(),
-          EnvironmentEdgeManager.currentTime() - before);
     }
     return r == null ? Result.EMPTY_RESULT : r;
   }
@@ -878,20 +867,11 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
                 "Client is invoking getClosestRowBefore removed in hbase-2.0.0 replaced by " +
                 "reverse Scan.");
           }
-          try {
-            Get get = ProtobufUtil.toGet(pbGet);
-            if (context != null) {
-              r = get(get, (region), closeCallBack, context);
-            } else {
-              r = region.get(get);
-            }
-          } finally {
-            final MetricsRegionServer metricsRegionServer = regionServer.getMetrics();
-            if (metricsRegionServer != null) {
-              metricsRegionServer.updateGet(
-                  region.getTableDescriptor().getTableName(),
-                  EnvironmentEdgeManager.currentTime() - before);
-            }
+          Get get = ProtobufUtil.toGet(pbGet);
+          if (context != null) {
+            r = get(get, (region), closeCallBack, context);
+          } else {
+            r = region.get(get);
           }
         } else if (action.hasServiceCall()) {
           hasResultOrException = true;
@@ -1117,23 +1097,6 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
           skipCellsForMutation(mutation, cells);
         }
       }
-      updateMutationMetrics(region, before, batchContainsPuts, batchContainsDelete);
-    }
-  }
-
-  private void updateMutationMetrics(HRegion region, long starttime, boolean batchContainsPuts,
-    boolean batchContainsDelete) {
-    final MetricsRegionServer metricsRegionServer = regionServer.getMetrics();
-    if (metricsRegionServer != null) {
-      long after = EnvironmentEdgeManager.currentTime();
-      if (batchContainsPuts) {
-        metricsRegionServer.updatePutBatch(
-            region.getTableDescriptor().getTableName(), after - starttime);
-      }
-      if (batchContainsDelete) {
-        metricsRegionServer.updateDeleteBatch(
-            region.getTableDescriptor().getTableName(), after - starttime);
-      }
     }
   }
 
@@ -1201,7 +1164,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
       return region.batchReplay(mutations.toArray(
         new MutationReplay[mutations.size()]), replaySeqId);
     } finally {
-      updateMutationMetrics(region, before, batchContainsPuts, batchContainsDelete);
+
     }
   }
 
@@ -1865,34 +1828,6 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
 
   @Override
   @QosPriority(priority=HConstants.ADMIN_QOS)
-  public GetRegionLoadResponse getRegionLoad(RpcController controller,
-      GetRegionLoadRequest request) throws ServiceException {
-
-    List<HRegion> regions;
-    if (request.hasTableName()) {
-      TableName tableName = ProtobufUtil.toTableName(request.getTableName());
-      regions = regionServer.getRegions(tableName);
-    } else {
-      regions = regionServer.getRegions();
-    }
-    List<RegionLoad> rLoads = new ArrayList<>(regions.size());
-    RegionLoad.Builder regionLoadBuilder = ClusterStatusProtos.RegionLoad.newBuilder();
-    RegionSpecifier.Builder regionSpecifier = RegionSpecifier.newBuilder();
-
-    try {
-      for (HRegion region : regions) {
-        rLoads.add(regionServer.createRegionLoad(region, regionLoadBuilder, regionSpecifier));
-      }
-    } catch (IOException e) {
-      throw new ServiceException(e);
-    }
-    GetRegionLoadResponse.Builder builder = GetRegionLoadResponse.newBuilder();
-    builder.addAllRegionLoads(rLoads);
-    return builder.build();
-  }
-
-  @Override
-  @QosPriority(priority=HConstants.ADMIN_QOS)
   public ClearCompactionQueuesResponse clearCompactionQueues(RpcController controller,
     ClearCompactionQueuesRequest request) throws ServiceException {
     LOG.debug("Client=" + RpcServer.getRequestUserName().orElse(null) + "/"
@@ -2316,11 +2251,6 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
       return ReplicateWALEntryResponse.newBuilder().build();
     } catch (IOException ie) {
       throw new ServiceException(ie);
-    } finally {
-      final MetricsRegionServer metricsRegionServer = regionServer.getMetrics();
-      if (metricsRegionServer != null) {
-        metricsRegionServer.updateReplay(EnvironmentEdgeManager.currentTime() - before);
-      }
     }
   }
 
@@ -2486,11 +2416,6 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
       return builder.build();
     } catch (IOException ie) {
       throw new ServiceException(ie);
-    } finally {
-      final MetricsRegionServer metricsRegionServer = regionServer.getMetrics();
-      if (metricsRegionServer != null) {
-        metricsRegionServer.updateBulkLoad(EnvironmentEdgeManager.currentTime() - start);
-      }
     }
   }
 
@@ -2659,14 +2584,6 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
     } catch (IOException ie) {
       throw new ServiceException(ie);
     } finally {
-      final MetricsRegionServer metricsRegionServer = regionServer.getMetrics();
-      if (metricsRegionServer != null) {
-        TableDescriptor td = region != null? region.getTableDescriptor(): null;
-        if (td != null) {
-          metricsRegionServer.updateGet(
-              td.getTableName(), EnvironmentEdgeManager.currentTime() - before);
-        }
-      }
       if (quota != null) {
         quota.close();
       }
@@ -3124,12 +3041,6 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
     spaceQuota.getPolicyEnforcement(region).check(put);
     quota.addMutation(put);
     region.put(put);
-
-    MetricsRegionServer metricsRegionServer = regionServer.getMetrics();
-    if (metricsRegionServer != null) {
-      long after = EnvironmentEdgeManager.currentTime();
-      metricsRegionServer.updatePut(region.getRegionInfo().getTable(), after - before);
-    }
   }
 
   private void delete(HRegion region, OperationQuota quota, MutationProto mutation,
@@ -3140,12 +3051,6 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
     spaceQuota.getPolicyEnforcement(region).check(delete);
     quota.addMutation(delete);
     region.delete(delete);
-
-    MetricsRegionServer metricsRegionServer = regionServer.getMetrics();
-    if (metricsRegionServer != null) {
-      long after = EnvironmentEdgeManager.currentTime();
-      metricsRegionServer.updateDelete(region.getRegionInfo().getTable(), after - before);
-    }
   }
 
   private CheckAndMutateResult checkAndMutate(HRegion region, OperationQuota quota,
@@ -3166,23 +3071,6 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
       result = region.checkAndMutate(checkAndMutate);
       if (region.getCoprocessorHost() != null) {
         result = region.getCoprocessorHost().postCheckAndMutate(checkAndMutate, result);
-      }
-    }
-    MetricsRegionServer metricsRegionServer = regionServer.getMetrics();
-    if (metricsRegionServer != null) {
-      long after = EnvironmentEdgeManager.currentTime();
-      metricsRegionServer.updateCheckAndMutate(after - before);
-
-      MutationType type = mutation.getMutateType();
-      switch (type) {
-        case PUT:
-          metricsRegionServer.updateCheckAndPut(after - before);
-          break;
-        case DELETE:
-          metricsRegionServer.updateCheckAndDelete(after - before);
-          break;
-        default:
-          break;
       }
     }
     return result;
@@ -3514,13 +3402,6 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
       long end = EnvironmentEdgeManager.currentTime();
       long responseCellSize = context != null ? context.getResponseCellSize() : 0;
       region.getMetrics().updateScanTime(end - before);
-      final MetricsRegionServer metricsRegionServer = regionServer.getMetrics();
-      if (metricsRegionServer != null) {
-        metricsRegionServer.updateScanSize(
-            region.getTableDescriptor().getTableName(), responseCellSize);
-        metricsRegionServer.updateScanTime(
-            region.getTableDescriptor().getTableName(), end - before);
-      }
     } finally {
       region.closeRegionOperation();
     }
@@ -3812,6 +3693,12 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
       throw new ServiceException(e);
     }
     return UpdateConfigurationResponse.getDefaultInstance();
+  }
+
+  @Override
+  public GetRegionLoadResponse getRegionLoad(RpcController controller, GetRegionLoadRequest request)
+    throws ServiceException {
+    return null;
   }
 
   @Override

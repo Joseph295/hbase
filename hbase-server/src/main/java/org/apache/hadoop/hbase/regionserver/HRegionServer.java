@@ -461,10 +461,10 @@ public class HRegionServer extends Thread implements
 
   private RegionServerCoprocessorHost regionServerCoprocessorHost;
 
-  private RegionServerProcedureManagerHost rspmHost;
+  private RegionServerProcedureManagerHost regionServerProcedureManagerHost;
 
-  private RegionServerRpcQuotaManager rsQuotaManager;
-  private RegionServerSpaceQuotaManager rsSpaceQuotaManager;
+  private RegionServerRpcQuotaManager regionServerRpcQuotaManager;
+  private RegionServerSpaceQuotaManager regionServerSpaceQuotaManager;
 
   /**
    * Nonce manager. Nonces are used to make operations like increment and append idempotent
@@ -864,9 +864,9 @@ public class HRegionServer extends Thread implements
 
     // watch for snapshots and other procedures
     try {
-      rspmHost = new RegionServerProcedureManagerHost();
-      rspmHost.loadProcedures(conf);
-      rspmHost.initialize(this);
+      regionServerProcedureManagerHost = new RegionServerProcedureManagerHost();
+      regionServerProcedureManagerHost.loadProcedures(conf);
+      regionServerProcedureManagerHost.initialize(this);
     } catch (KeeperException e) {
       this.abort("Failed to reach coordination cluster when creating procedure handler.", e);
     }
@@ -944,15 +944,15 @@ public class HRegionServer extends Thread implements
       if (!isStopped() && isHealthy()) {
         // start the snapshot handler and other procedure handlers,
         // since the server is ready to run
-        if (this.rspmHost != null) {
-          this.rspmHost.start();
+        if (this.regionServerProcedureManagerHost != null) {
+          this.regionServerProcedureManagerHost.start();
         }
         // Start the Quota Manager
-        if (this.rsQuotaManager != null) {
-          rsQuotaManager.start(getRpcServer().getRpcScheduler());
+        if (this.regionServerRpcQuotaManager != null) {
+          regionServerRpcQuotaManager.start(getRpcServer().getRpcScheduler());
         }
-        if (this.rsSpaceQuotaManager != null) {
-          this.rsSpaceQuotaManager.start();
+        if (this.regionServerSpaceQuotaManager != null) {
+          this.regionServerSpaceQuotaManager.start();
         }
       }
 
@@ -1037,8 +1037,8 @@ public class HRegionServer extends Thread implements
     if (this.compactSplitThread != null) this.compactSplitThread.interruptIfNecessary();
 
     // Stop the snapshot and other procedure handlers, forcefully killing all running tasks
-    if (rspmHost != null) {
-      rspmHost.stop(this.abortRequested.get() || this.killed);
+    if (regionServerProcedureManagerHost != null) {
+      regionServerProcedureManagerHost.stop(this.abortRequested.get() || this.killed);
     }
 
     if (this.killed) {
@@ -1079,12 +1079,12 @@ public class HRegionServer extends Thread implements
     }
 
     // Stop the quota manager
-    if (rsQuotaManager != null) {
-      rsQuotaManager.stop();
+    if (regionServerRpcQuotaManager != null) {
+      regionServerRpcQuotaManager.stop();
     }
-    if (rsSpaceQuotaManager != null) {
-      rsSpaceQuotaManager.stop();
-      rsSpaceQuotaManager = null;
+    if (regionServerSpaceQuotaManager != null) {
+      regionServerSpaceQuotaManager.stop();
+      regionServerSpaceQuotaManager = null;
     }
 
     // flag may be changed when closing regions throws exception.
@@ -1869,8 +1869,8 @@ public class HRegionServer extends Thread implements
     }
 
     // Setup the Quota Manager
-    rsQuotaManager = new RegionServerRpcQuotaManager(this);
-    rsSpaceQuotaManager = new RegionServerSpaceQuotaManager(this);
+    regionServerRpcQuotaManager = new RegionServerRpcQuotaManager(this);
+    regionServerSpaceQuotaManager = new RegionServerSpaceQuotaManager(this);
 
     if (QuotaUtil.isQuotaEnabled(conf)) {
       this.fsUtilizationChore = new FileSystemUtilizationChore(this);
@@ -2805,7 +2805,7 @@ public class HRegionServer extends Thread implements
 
   @Override
   public RegionServerRpcQuotaManager getRegionServerRpcQuotaManager() {
-    return rsQuotaManager;
+    return regionServerRpcQuotaManager;
   }
 
   //
@@ -3558,21 +3558,21 @@ public class HRegionServer extends Thread implements
 
   @Override
   public RegionServerSpaceQuotaManager getRegionServerSpaceQuotaManager() {
-    return this.rsSpaceQuotaManager;
+    return this.regionServerSpaceQuotaManager;
   }
 
   @Override
   public boolean reportFileArchivalForQuotas(TableName tableName,
       Collection<Entry<String, Long>> archivedFiles) {
     RegionServerStatusService.BlockingInterface rss = rssStub;
-    if (rss == null || rsSpaceQuotaManager == null) {
+    if (rss == null || regionServerSpaceQuotaManager == null) {
       // the current server could be stopping.
       LOG.trace("Skipping file archival reporting to HMaster as stub is null");
       return false;
     }
     try {
       RegionServerStatusProtos.FileArchiveNotificationRequest request =
-          rsSpaceQuotaManager.buildFileArchiveRequest(tableName, archivedFiles);
+          regionServerSpaceQuotaManager.buildFileArchiveRequest(tableName, archivedFiles);
       rss.reportFileArchival(null, request);
     } catch (ServiceException se) {
       IOException ioe = ProtobufUtil.getRemoteException(se);

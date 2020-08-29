@@ -490,7 +490,7 @@ public class HRegionServer extends Thread implements
 
   protected final RSRpcServices rpcServices;
 
-  private CoordinatedStateManager csm;
+  private CoordinatedStateManager coordinatedStateManager;
 
   /**
    * Configuration manager is used to register/deregister and notify the configuration observers
@@ -619,7 +619,7 @@ public class HRegionServer extends Thread implements
         if (!this.masterless) {
           if (conf.getBoolean(HBASE_SPLIT_WAL_COORDINATED_BY_ZK,
             DEFAULT_HBASE_SPLIT_COORDINATED_BY_ZK)) {
-            this.csm = new ZkCoordinatedStateManager(this);
+            this.coordinatedStateManager = new ZkCoordinatedStateManager(this);
           }
 
           masterAddressTracker = new MasterAddressTracker(getZooKeeper(), this);
@@ -1825,7 +1825,7 @@ public class HRegionServer extends Thread implements
     sinkConf.setInt(HConstants.HBASE_RPC_TIMEOUT_KEY,
         conf.getInt("hbase.log.replay.rpc.timeout", 30000)); // default 30 seconds
     sinkConf.setInt(HConstants.HBASE_CLIENT_SERVERSIDE_RETRIES_MULTIPLIER, 1);
-    if (this.csm != null && conf.getBoolean(HBASE_SPLIT_WAL_COORDINATED_BY_ZK,
+    if (this.coordinatedStateManager != null && conf.getBoolean(HBASE_SPLIT_WAL_COORDINATED_BY_ZK,
       DEFAULT_HBASE_SPLIT_COORDINATED_BY_ZK)) {
       // SplitLogWorker needs csm. If none, don't start this.
       this.splitLogWorker = new SplitLogWorker(sinkConf, this, this, walFactory);
@@ -2776,7 +2776,7 @@ public class HRegionServer extends Thread implements
 
   @Override
   public CoordinatedStateManager getCoordinatedStateManager() {
-    return csm;
+    return coordinatedStateManager;
   }
 
   @Override

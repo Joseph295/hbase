@@ -244,8 +244,6 @@ import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos.RegionActi
 import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos.ResultOrException;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos.ScanRequest;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos.ScanResponse;
-import org.apache.hadoop.hbase.shaded.protobuf.generated.ClusterStatusProtos;
-import org.apache.hadoop.hbase.shaded.protobuf.generated.ClusterStatusProtos.RegionLoad;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.HBaseProtos.NameBytesPair;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.HBaseProtos.NameInt64Pair;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.HBaseProtos.RegionSpecifier;
@@ -3894,7 +3892,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
 
   @VisibleForTesting
   public RpcScheduler getRpcScheduler() {
-    return rpcServer.getScheduler();
+    return rpcServer.getRpcScheduler();
   }
 
   protected AccessChecker getAccessChecker() {

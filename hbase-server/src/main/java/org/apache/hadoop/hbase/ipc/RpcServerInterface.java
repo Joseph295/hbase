@@ -89,7 +89,7 @@ public interface RpcServerInterface {
   @VisibleForTesting
   void refreshAuthManager(Configuration conf, PolicyProvider pp);
 
-  RpcScheduler getScheduler();
+  RpcScheduler getRpcScheduler();
 
   /**
    * Allocator to allocate/free the ByteBuffers, those ByteBuffers can be on-heap or off-heap.

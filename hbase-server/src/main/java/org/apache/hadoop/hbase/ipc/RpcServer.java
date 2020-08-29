@@ -211,7 +211,7 @@ public abstract class RpcServer implements RpcServerInterface,
   protected final Server server;
   protected final List<BlockingServiceAndInterface> services;
 
-  protected final RpcScheduler scheduler;
+  protected final RpcScheduler rpcScheduler;
 
   protected UserProvider userProvider;
 
@@ -306,14 +306,14 @@ public abstract class RpcServer implements RpcServerInterface,
 
     this.isOnlineLogProviderEnabled = conf.getBoolean(HConstants.SLOW_LOG_BUFFER_ENABLED_KEY,
       HConstants.DEFAULT_ONLINE_LOG_PROVIDER_ENABLED);
-    this.scheduler = scheduler;
+    this.rpcScheduler = scheduler;
   }
 
   @Override
   public void onConfigurationChange(Configuration newConf) {
     initReconfigurable(newConf);
-    if (scheduler instanceof ConfigurationObserver) {
-      ((ConfigurationObserver) scheduler).onConfigurationChange(newConf);
+    if (rpcScheduler instanceof ConfigurationObserver) {
+      ((ConfigurationObserver) rpcScheduler).onConfigurationChange(newConf);
     }
     if (authorize) {
       refreshAuthManager(newConf, new HBasePolicyProvider());
@@ -806,8 +806,8 @@ public abstract class RpcServer implements RpcServerInterface,
   }
 
   @Override
-  public RpcScheduler getScheduler() {
-    return scheduler;
+  public RpcScheduler getRpcScheduler() {
+    return rpcScheduler;
   }
 
   @Override

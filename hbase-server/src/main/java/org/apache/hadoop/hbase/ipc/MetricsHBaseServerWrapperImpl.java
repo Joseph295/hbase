@@ -25,14 +25,14 @@ import org.apache.yetus.audience.InterfaceAudience;
 @InterfaceAudience.Private
 public class MetricsHBaseServerWrapperImpl implements MetricsHBaseServerWrapper {
 
-  private RpcServer server;
+  private RpcServer rpcServer;
 
-  MetricsHBaseServerWrapperImpl(RpcServer server) {
-    this.server = server;
+  MetricsHBaseServerWrapperImpl(RpcServer rpcServer) {
+    this.rpcServer = rpcServer;
   }
 
   private boolean isServerStarted() {
-    return this.server != null && this.server.isStarted();
+    return this.rpcServer != null && this.rpcServer.isStarted();
   }
 
   @Override
@@ -40,39 +40,39 @@ public class MetricsHBaseServerWrapperImpl implements MetricsHBaseServerWrapper 
     if (!isServerStarted()) {
       return 0;
     }
-    return server.callQueueSizeInBytes.sum();
+    return rpcServer.callQueueSizeInBytes.sum();
   }
 
   @Override
   public int getGeneralQueueLength() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getGeneralQueueLength();
+    return rpcServer.getRpcScheduler().getGeneralQueueLength();
   }
 
   @Override
   public int getReplicationQueueLength() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getReplicationQueueLength();
+    return rpcServer.getRpcScheduler().getReplicationQueueLength();
   }
 
   @Override
   public int getPriorityQueueLength() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getPriorityQueueLength();
+    return rpcServer.getRpcScheduler().getPriorityQueueLength();
   }
 
   @Override
   public int getMetaPriorityQueueLength() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getMetaPriorityQueueLength();
+    return rpcServer.getRpcScheduler().getMetaPriorityQueueLength();
   }
 
   @Override
@@ -80,116 +80,116 @@ public class MetricsHBaseServerWrapperImpl implements MetricsHBaseServerWrapper 
     if (!isServerStarted()) {
       return 0;
     }
-    return server.getNumOpenConnections();
+    return rpcServer.getNumOpenConnections();
   }
 
   @Override
   public int getActiveRpcHandlerCount() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getActiveRpcHandlerCount();
+    return rpcServer.getRpcScheduler().getActiveRpcHandlerCount();
   }
 
   @Override
   public int getActiveGeneralRpcHandlerCount() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getActiveGeneralRpcHandlerCount();
+    return rpcServer.getRpcScheduler().getActiveGeneralRpcHandlerCount();
   }
 
   @Override
   public int getActivePriorityRpcHandlerCount() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getActivePriorityRpcHandlerCount();
+    return rpcServer.getRpcScheduler().getActivePriorityRpcHandlerCount();
   }
 
   @Override
   public int getActiveMetaPriorityRpcHandlerCount() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getActiveMetaPriorityRpcHandlerCount();
+    return rpcServer.getRpcScheduler().getActiveMetaPriorityRpcHandlerCount();
   }
 
   @Override
   public int getActiveReplicationRpcHandlerCount() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getActiveReplicationRpcHandlerCount();
+    return rpcServer.getRpcScheduler().getActiveReplicationRpcHandlerCount();
   }
 
   @Override
   public long getNumGeneralCallsDropped() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getNumGeneralCallsDropped();
+    return rpcServer.getRpcScheduler().getNumGeneralCallsDropped();
   }
 
   @Override
   public long getNumLifoModeSwitches() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getNumLifoModeSwitches();
+    return rpcServer.getRpcScheduler().getNumLifoModeSwitches();
   }
 
   @Override
   public int getWriteQueueLength() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getWriteQueueLength();
+    return rpcServer.getRpcScheduler().getWriteQueueLength();
   }
 
   @Override
   public int getReadQueueLength() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getReadQueueLength();
+    return rpcServer.getRpcScheduler().getReadQueueLength();
   }
 
   @Override
   public int getScanQueueLength() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getScanQueueLength();
+    return rpcServer.getRpcScheduler().getScanQueueLength();
   }
 
   @Override
   public int getActiveWriteRpcHandlerCount() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getActiveWriteRpcHandlerCount();
+    return rpcServer.getRpcScheduler().getActiveWriteRpcHandlerCount();
   }
 
   @Override
   public int getActiveReadRpcHandlerCount() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getActiveReadRpcHandlerCount();
+    return rpcServer.getRpcScheduler().getActiveReadRpcHandlerCount();
   }
 
   @Override
   public int getActiveScanRpcHandlerCount() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0;
     }
-    return server.getScheduler().getActiveScanRpcHandlerCount();
+    return rpcServer.getRpcScheduler().getActiveScanRpcHandlerCount();
   }
 
   @Override
   public long getNettyDmUsage() {
-    if (!isServerStarted() || this.server.getScheduler() == null) {
+    if (!isServerStarted() || this.rpcServer.getRpcScheduler() == null) {
       return 0L;
     }
 

@@ -796,7 +796,7 @@ public class TestMetaTableAccessor {
         // it is in master
         rs = cluster.getMaster();
       }
-      SpyingRpcScheduler scheduler = (SpyingRpcScheduler) rs.getRpcServer().getScheduler();
+      SpyingRpcScheduler scheduler = (SpyingRpcScheduler) rs.getRpcServer().getRpcScheduler();
       long prevCalls = scheduler.numPriorityCalls;
       MetaTableAccessor.splitRegion(connection, parent, -1L, splitA, splitB, loc.getServerName(),
         1);

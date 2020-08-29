@@ -114,7 +114,6 @@ public class TestMasterStatusServlet {
 
     MetricsRegionServer rms = Mockito.mock(MetricsRegionServer.class);
     Mockito.doReturn(new MetricsRegionServerWrapperStub()).when(rms).getRegionServerWrapper();
-    Mockito.doReturn(rms).when(master).getMetrics();
 
     // Mock admin
     admin = Mockito.mock(Admin.class);

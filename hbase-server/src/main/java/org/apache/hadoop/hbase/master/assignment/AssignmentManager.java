@@ -220,8 +220,6 @@ public class AssignmentManager {
       return;
     }
 
-    LOG.trace("Starting assignment manager");
-
     // Start the Assignment Thread
     startAssignmentThread();
 
@@ -1226,9 +1224,6 @@ public class AssignmentManager {
           am.handleRegionOverStuckWarningThreshold(hri.getRegion());
         }
       }
-
-      // update metrics
-      am.updateRegionsInTransitionMetrics(ritStat);
     }
   }
 
@@ -1284,8 +1279,6 @@ public class AssignmentManager {
         LOG.info("Found {} OPEN regions on dead servers and {} OPEN regions on unknown servers",
           deadRegions, unknownRegions);
       }
-
-      am.updateDeadServerRegionMetrics(deadRegions, unknownRegions);
     }
   }
 
@@ -1387,17 +1380,6 @@ public class AssignmentManager {
         }
       }
     }
-  }
-
-  private void updateRegionsInTransitionMetrics(final RegionInTransitionStat ritStat) {
-    metrics.updateRITOldestAge(ritStat.getOldestRITTime());
-    metrics.updateRITCount(ritStat.getTotalRITs());
-    metrics.updateRITCountOverThreshold(ritStat.getTotalRITsOverThreshold());
-  }
-
-  private void updateDeadServerRegionMetrics(int deadRegions, int unknownRegions) {
-    metrics.updateDeadServerOpenRegions(deadRegions);
-    metrics.updateUnknownServerOpenRegions(unknownRegions);
   }
 
   private void handleRegionOverStuckWarningThreshold(final RegionInfo regionInfo) {

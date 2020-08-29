@@ -105,7 +105,6 @@ public class HBaseHbck implements Hbck {
         RequestConverter.buildSetTableStateInMetaRequest(state));
       return TableState.convert(state.getTableName(), response.getTableState());
     } catch (ServiceException se) {
-      LOG.debug("table={}, state={}", state.getTableName(), state.getState(), se);
       throw new IOException(se);
     }
   }
@@ -114,9 +113,6 @@ public class HBaseHbck implements Hbck {
   public Map<String, RegionState.State> setRegionStateInMeta(
     Map<String, RegionState.State> nameOrEncodedName2State) throws IOException {
     try {
-      if (LOG.isDebugEnabled()) {
-        nameOrEncodedName2State.forEach((k, v) -> LOG.debug("region={}, state={}", k, v));
-      }
       MasterProtos.SetRegionStateInMetaResponse response =
         hbck.setRegionStateInMeta(rpcControllerFactory.newController(),
           RequestConverter.buildSetRegionStateInMetaRequest(nameOrEncodedName2State));
@@ -139,7 +135,6 @@ public class HBaseHbck implements Hbck {
           RequestConverter.toAssignRegionsRequest(encodedRegionNames, override));
       return response.getPidList();
     } catch (ServiceException se) {
-      LOG.debug(toCommaDelimitedString(encodedRegionNames), se);
       throw new IOException(se);
     }
   }
@@ -152,7 +147,6 @@ public class HBaseHbck implements Hbck {
           RequestConverter.toUnassignRegionsRequest(encodedRegionNames, override));
       return response.getPidList();
     } catch (ServiceException se) {
-      LOG.debug(toCommaDelimitedString(encodedRegionNames), se);
       throw new IOException(se);
     }
   }
@@ -192,10 +186,6 @@ public class HBaseHbck implements Hbck {
             RequestConverter.toScheduleServerCrashProcedureRequest(serverNames));
       return response.getPidList();
     } catch (ServiceException se) {
-      LOG.debug(toCommaDelimitedString(
-        serverNames.stream().map(serverName -> ProtobufUtil.toServerName(serverName).toString())
-            .collect(Collectors.toList())),
-        se);
       throw new IOException(se);
     }
   }
@@ -207,7 +197,6 @@ public class HBaseHbck implements Hbck {
           RunHbckChoreRequest.newBuilder().build());
       return response.getRan();
     } catch (ServiceException se) {
-      LOG.debug("Failed to run HBCK chore", se);
       throw new IOException(se);
     }
   }

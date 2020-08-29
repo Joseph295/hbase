@@ -68,13 +68,13 @@ public class TestHFileCleaner {
 
   private final static HBaseTestingUtility UTIL = new HBaseTestingUtility();
 
-  private static DirScanPool POOL;
+  private static CleanerThreadPool POOL;
 
   @BeforeClass
   public static void setupCluster() throws Exception {
     // have to use a minidfs cluster because the localfs doesn't modify file times correctly
     UTIL.startMiniDFSCluster(1);
-    POOL = new DirScanPool(UTIL.getConfiguration());
+    POOL = new CleanerThreadPool(UTIL.getConfiguration());
   }
 
   @AfterClass

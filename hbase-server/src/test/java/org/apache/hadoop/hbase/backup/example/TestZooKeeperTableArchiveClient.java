@@ -43,7 +43,7 @@ import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.DummyConnectionRegistry;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.master.cleaner.BaseHFileCleanerDelegate;
-import org.apache.hadoop.hbase.master.cleaner.DirScanPool;
+import org.apache.hadoop.hbase.master.cleaner.CleanerThreadPool;
 import org.apache.hadoop.hbase.master.cleaner.HFileCleaner;
 import org.apache.hadoop.hbase.regionserver.CompactedHFilesDischarger;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -90,7 +90,7 @@ public class TestZooKeeperTableArchiveClient {
   private final List<Path> toCleanup = new ArrayList<>();
   private static Connection CONNECTION;
   private static RegionServerServices rss;
-  private static DirScanPool POOL;
+  private static CleanerThreadPool POOL;
 
   public static final class MockRegistry extends DummyConnectionRegistry {
 
@@ -119,7 +119,7 @@ public class TestZooKeeperTableArchiveClient {
     String archivingZNode = ZKTableArchiveClient.getArchiveZNode(UTIL.getConfiguration(), watcher);
     ZKUtil.createWithParents(watcher, archivingZNode);
     rss = mock(RegionServerServices.class);
-    POOL = new DirScanPool(UTIL.getConfiguration());
+    POOL = new CleanerThreadPool(UTIL.getConfiguration());
   }
 
   private static void setupConf(Configuration conf) {

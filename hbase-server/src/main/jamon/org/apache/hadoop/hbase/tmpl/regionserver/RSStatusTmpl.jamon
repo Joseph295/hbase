@@ -133,13 +133,6 @@ org.apache.hadoop.hbase.zookeeper.MasterAddressTracker;
     <div class="row">
 
     <section>
-    <h2>Server Metrics</h2>
-    <& ServerMetricsTmpl; mWrap = regionServer.getMetrics().getRegionServerWrapper();
-      mServerWrap = regionServer.getRpcServer().getMetrics().getHBaseServerWrapper();
-      bbAllocator = regionServer.getRpcServer().getByteBuffAllocator(); &>
-    </section>
-
-    <section>
     <h2>Block Cache</h2>
     <& BlockCacheTmpl; cacheConfig = new CacheConfig(regionServer.getConfiguration()); config = regionServer.getConfiguration(); bc = regionServer.getBlockCache().orElse(null) &>
     </section>

@@ -17,9 +17,7 @@
  */
 package org.apache.hadoop.hbase.master;
 
-import static org.apache.hadoop.hbase.HConstants.DEFAULT_HBASE_SPLIT_COORDINATED_BY_ZK;
 import static org.apache.hadoop.hbase.HConstants.HBASE_MASTER_LOGCLEANER_PLUGINS;
-import static org.apache.hadoop.hbase.HConstants.HBASE_SPLIT_WAL_COORDINATED_BY_ZK;
 import static org.apache.hadoop.hbase.util.DNS.MASTER_HOSTNAME_KEY;
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -39,7 +37,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -106,7 +103,7 @@ import org.apache.hadoop.hbase.master.assignment.TransitRegionStateProcedure;
 import org.apache.hadoop.hbase.master.balancer.BalancerChore;
 import org.apache.hadoop.hbase.master.balancer.ClusterStatusChore;
 import org.apache.hadoop.hbase.master.balancer.LoadBalancerFactory;
-import org.apache.hadoop.hbase.master.cleaner.DirScanPool;
+import org.apache.hadoop.hbase.master.cleaner.CleanerThreadPool;
 import org.apache.hadoop.hbase.master.cleaner.HFileCleaner;
 import org.apache.hadoop.hbase.master.cleaner.LogCleaner;
 import org.apache.hadoop.hbase.master.cleaner.ReplicationBarrierCleaner;
@@ -314,16 +311,18 @@ public class HMaster extends HRegionServer implements MasterServices {
 
   // Manager and zk listener for master election
   private final ActiveMasterManager activeMasterManager;
+  // Tracker for active master location, if any client ZK quorum specified
+  MasterAddressSyncer masterAddressSyncer;
+
   // Region server tracker
   private RegionServerTracker regionServerTracker;
   // Draining region server tracker
   private DrainingServerTracker drainingServerTracker;
+
   // Tracker for load balancer state
   LoadBalancerTracker loadBalancerTracker;
   // Tracker for meta location, if any client ZK quorum specified
   MetaLocationSyncer metaLocationSyncer;
-  // Tracker for active master location, if any client ZK quorum specified
-  MasterAddressSyncer masterAddressSyncer;
   // Tracker for auto snapshot cleanup state
   SnapshotCleanupTracker snapshotCleanupTracker;
 
@@ -377,7 +376,7 @@ public class HMaster extends HRegionServer implements MasterServices {
   // buffer for "fatal error" notices from region servers
   // in the cluster. This is only used for assisting
   // operations/debugging.
-  MemoryBoundedLogMessageBuffer rsFatals;
+  MemoryBoundedLogMessageBuffer memoryBoundedLogMessageBuffer;
 
   // flag set after we become the active master (used for testing)
   private volatile boolean activeMaster = false;
@@ -408,7 +407,7 @@ public class HMaster extends HRegionServer implements MasterServices {
 
   private HbckChore hbckChore;
   CatalogJanitor catalogJanitorChore;
-  private DirScanPool cleanerPool;
+  private CleanerThreadPool cleanerPool;
   private LogCleaner logCleaner;
   private HFileCleaner hfileCleaner;
   private ReplicationBarrierCleaner replicationBarrierCleaner;
@@ -526,19 +525,14 @@ public class HMaster extends HRegionServer implements MasterServices {
   public HMaster(final Configuration conf) throws IOException {
     super(conf);
     try {
-      if (conf.getBoolean(MAINTENANCE_MODE, false)) {
-        LOG.info("Detected {}=true via configuration.", MAINTENANCE_MODE);
-        maintenanceMode = true;
-      } else if (Boolean.getBoolean(MAINTENANCE_MODE)) {
-        LOG.info("Detected {}=true via environment variables.", MAINTENANCE_MODE);
+      if (conf.getBoolean(MAINTENANCE_MODE, false)
+        || Boolean.getBoolean(MAINTENANCE_MODE)) {
         maintenanceMode = true;
       } else {
         maintenanceMode = false;
       }
-      this.rsFatals = new MemoryBoundedLogMessageBuffer(
+      this.memoryBoundedLogMessageBuffer = new MemoryBoundedLogMessageBuffer(
           conf.getLong("hbase.master.buffer.for.rs.fatals", 1 * 1024 * 1024));
-      LOG.info("hbase.rootdir={}, hbase.cluster.distributed={}", getDataRootDir(),
-          this.conf.getBoolean(HConstants.CLUSTER_DISTRIBUTED, false));
 
       // Disable usage of meta replicas in the master
       this.conf.setBoolean(HConstants.USE_META_REPLICAS, false);
@@ -950,10 +944,6 @@ public class HMaster extends HRegionServer implements MasterServices {
     // loading.
     this.serverManager = createServerManager(this);
     this.syncReplicationReplayWALManager = new SyncReplicationReplayWALManager(this);
-    if (!conf.getBoolean(HBASE_SPLIT_WAL_COORDINATED_BY_ZK,
-      DEFAULT_HBASE_SPLIT_COORDINATED_BY_ZK)) {
-      this.splitWALManager = new SplitWALManager(this);
-    }
 
     // initialize master local region
     masterRegion = MasterRegionFactory.create(this);
@@ -1198,10 +1188,6 @@ public class HMaster extends HRegionServer implements MasterServices {
      */
     long start = System.currentTimeMillis();
     this.balancer.postMasterStartupInitialize();
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Balancer post startup initialization complete, took " + (
-          (System.currentTimeMillis() - start) / 1000) + " seconds");
-    }
   }
 
   /**
@@ -1444,7 +1430,7 @@ public class HMaster extends HRegionServer implements MasterServices {
     startProcedureExecutor();
 
     // Create cleaner thread pool
-    cleanerPool = new DirScanPool(conf);
+    cleanerPool = new CleanerThreadPool(conf);
     // Start log cleaner thread
     int cleanerInterval =
       conf.getInt(HBASE_MASTER_CLEANER_INTERVAL, DEFAULT_HBASE_MASTER_CLEANER_INTERVAL);
@@ -2864,7 +2850,7 @@ public class HMaster extends HRegionServer implements MasterServices {
   }
 
   public MemoryBoundedLogMessageBuffer getRegionServerFatalLogBuffer() {
-    return rsFatals;
+    return memoryBoundedLogMessageBuffer;
   }
 
   /**
@@ -3382,15 +3368,15 @@ public class HMaster extends HRegionServer implements MasterServices {
   throws IOException {
     if (tableNameList == null || tableNameList.isEmpty()) {
       // request for all TableDescriptors
-      Collection<TableDescriptor> allHtds;
+      Collection<TableDescriptor> tableDescriptors;
       if (namespace != null && namespace.length() > 0) {
         // Do a check on the namespace existence. Will fail if does not exist.
         this.clusterSchemaService.getNamespace(namespace);
-        allHtds = tableDescriptors.getByNamespace(namespace).values();
+        tableDescriptors = this.tableDescriptors.getByNamespace(namespace).values();
       } else {
-        allHtds = tableDescriptors.getAll().values();
+        tableDescriptors = this.tableDescriptors.getAll().values();
       }
-      for (TableDescriptor desc: allHtds) {
+      for (TableDescriptor desc: tableDescriptors) {
         if (tableStateManager.isTablePresent(desc.getTableName())
             && (includeSysTables || !desc.getTableName().isSystemTable())) {
           htds.add(desc);

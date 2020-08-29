@@ -75,7 +75,7 @@ public class LogCleaner extends CleanerChore<BaseLogCleanerDelegate>
    * @param pool the thread pool used to scan directories
    */
   public LogCleaner(final int period, final Stoppable stopper, Configuration conf, FileSystem fs,
-    Path oldLogDir, DirScanPool pool) {
+    Path oldLogDir, CleanerThreadPool pool) {
     super("LogsCleaner", period, stopper, conf, fs, oldLogDir, HBASE_MASTER_LOGCLEANER_PLUGINS,
       pool);
     this.pendingDelete = new LinkedBlockingQueue<>();

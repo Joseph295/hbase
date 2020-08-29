@@ -39,7 +39,6 @@ import org.slf4j.LoggerFactory;
  */
 @InterfaceAudience.Private
 public class RegionSizeReportingChore extends ScheduledChore {
-  private static final Logger LOG = LoggerFactory.getLogger(RegionSizeReportingChore.class);
 
   static final String REGION_SIZE_REPORTING_CHORE_PERIOD_KEY =
       "hbase.regionserver.quotas.region.size.reporting.chore.period";
@@ -54,7 +53,6 @@ public class RegionSizeReportingChore extends ScheduledChore {
   static final String REGION_SIZE_REPORTING_CHORE_TIMEUNIT_DEFAULT = TimeUnit.MILLISECONDS.name();
 
   private final RegionServerServices rsServices;
-  private final MetricsRegionServer metrics;
 
   public RegionSizeReportingChore(RegionServerServices rsServices) {
     super(
@@ -62,20 +60,11 @@ public class RegionSizeReportingChore extends ScheduledChore {
         getPeriod(rsServices.getConfiguration()), getInitialDelay(rsServices.getConfiguration()),
         getTimeUnit(rsServices.getConfiguration()));
     this.rsServices = rsServices;
-    this.metrics = rsServices.getMetrics();
   }
 
   @Override
   protected void chore() {
-    final long start = System.nanoTime();
-    try {
-      _chore();
-    } finally {
-      if (metrics != null) {
-        metrics.incrementRegionSizeReportingChoreTime(
-            TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS));
-      }
-    }
+    _chore();
   }
 
   void _chore() {
@@ -113,10 +102,6 @@ public class RegionSizeReportingChore extends ScheduledChore {
         numEntriesRemoved++;
         iter.remove();
       }
-    }
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("Removed " + numEntriesRemoved + " region sizes before reporting to Master "
-          + "because they are for non-online regions.");
     }
   }
 

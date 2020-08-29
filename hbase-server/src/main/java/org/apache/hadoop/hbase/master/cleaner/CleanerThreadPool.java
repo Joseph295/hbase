@@ -32,14 +32,14 @@ import org.slf4j.LoggerFactory;
  * The thread pool used for scan directories
  */
 @InterfaceAudience.Private
-public class DirScanPool implements ConfigurationObserver {
-  private static final Logger LOG = LoggerFactory.getLogger(DirScanPool.class);
+public class CleanerThreadPool implements ConfigurationObserver {
+  private static final Logger LOG = LoggerFactory.getLogger(CleanerThreadPool.class);
   private volatile int size;
   private final ThreadPoolExecutor pool;
   private int cleanerLatch;
   private boolean reconfigNotification;
 
-  public DirScanPool(Configuration conf) {
+  public CleanerThreadPool(Configuration conf) {
     String poolSize = conf.get(CleanerChore.CHORE_POOL_SIZE, CleanerChore.DEFAULT_CHORE_POOL_SIZE);
     size = CleanerChore.calculatePoolSize(poolSize);
     // poolSize may be 0 or 0.0 from a careless configuration,

@@ -521,7 +521,6 @@ public class HBaseFsck extends Configured implements Closeable {
           LOG.info("Failed to delete " + HBCK_LOCK_PATH + ", try="
               + (retryCounter.getAttemptTimes() + 1) + " of "
               + retryCounter.getMaxAttempts());
-          LOG.debug("Failed to delete " + HBCK_LOCK_PATH, ioe);
           try {
             retryCounter.sleepUntilNextRetry();
           } catch (InterruptedException ie) {

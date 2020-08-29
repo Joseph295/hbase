@@ -52,7 +52,7 @@ import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.master.HMaster;
-import org.apache.hadoop.hbase.master.cleaner.DirScanPool;
+import org.apache.hadoop.hbase.master.cleaner.CleanerThreadPool;
 import org.apache.hadoop.hbase.master.cleaner.HFileCleaner;
 import org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -95,7 +95,7 @@ public class TestHFileArchiving {
   private static final HBaseTestingUtility UTIL = new HBaseTestingUtility();
   private static final byte[] TEST_FAM = Bytes.toBytes("fam");
 
-  private static DirScanPool POOL;
+  private static CleanerThreadPool POOL;
   @Rule
   public TestName name = new TestName();
 
@@ -110,7 +110,7 @@ public class TestHFileArchiving {
     // We don't want the cleaner to remove files. The tests do that.
     UTIL.getMiniHBaseCluster().getMaster().getHFileCleaner().cancel(true);
 
-    POOL = new DirScanPool(UTIL.getConfiguration());
+    POOL = new CleanerThreadPool(UTIL.getConfiguration());
   }
 
   private static void setupConf(Configuration conf) {

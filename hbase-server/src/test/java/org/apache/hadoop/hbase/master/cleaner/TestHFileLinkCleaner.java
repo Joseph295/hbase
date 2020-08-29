@@ -63,14 +63,14 @@ public class TestHFileLinkCleaner {
 
   private final static HBaseTestingUtility TEST_UTIL = new HBaseTestingUtility();
 
-  private static DirScanPool POOL;
+  private static CleanerThreadPool POOL;
 
   @Rule
   public TestName name = new TestName();
 
   @BeforeClass
   public static void setUp() {
-    POOL = new DirScanPool(TEST_UTIL.getConfiguration());
+    POOL = new CleanerThreadPool(TEST_UTIL.getConfiguration());
   }
 
   @AfterClass

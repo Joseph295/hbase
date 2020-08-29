@@ -67,7 +67,7 @@ public abstract class CleanerChore<T extends FileCleanerDelegate> extends Schedu
   public static final String CHORE_POOL_SIZE = "hbase.cleaner.scan.dir.concurrent.size";
   static final String DEFAULT_CHORE_POOL_SIZE = "0.25";
 
-  private final DirScanPool pool;
+  private final CleanerThreadPool pool;
 
   protected final FileSystem fs;
   private final Path oldFileDir;
@@ -77,7 +77,7 @@ public abstract class CleanerChore<T extends FileCleanerDelegate> extends Schedu
   protected List<T> cleanersChain;
 
   public CleanerChore(String name, final int sleepPeriod, final Stoppable s, Configuration conf,
-    FileSystem fs, Path oldFileDir, String confKey, DirScanPool pool) {
+    FileSystem fs, Path oldFileDir, String confKey, CleanerThreadPool pool) {
     this(name, sleepPeriod, s, conf, fs, oldFileDir, confKey, pool, null);
   }
 
@@ -93,7 +93,7 @@ public abstract class CleanerChore<T extends FileCleanerDelegate> extends Schedu
    * @param params members could be used in cleaner
    */
   public CleanerChore(String name, final int sleepPeriod, final Stoppable s, Configuration conf,
-    FileSystem fs, Path oldFileDir, String confKey, DirScanPool pool, Map<String, Object> params) {
+    FileSystem fs, Path oldFileDir, String confKey, CleanerThreadPool pool, Map<String, Object> params) {
     super(name, s, sleepPeriod);
 
     Preconditions.checkNotNull(pool, "Chore's pool can not be null");

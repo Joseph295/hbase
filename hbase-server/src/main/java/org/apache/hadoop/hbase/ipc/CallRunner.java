@@ -96,9 +96,6 @@ public class CallRunner {
   public void run() {
     try {
       if (call.disconnectSince() >= 0) {
-        if (RpcServer.LOG.isDebugEnabled()) {
-          RpcServer.LOG.debug(Thread.currentThread().getName() + ": skipped " + call);
-        }
         return;
       }
       call.setStartTime(System.currentTimeMillis());
@@ -108,51 +105,28 @@ public class CallRunner {
       }
       this.status.setStatus("Setting up call");
       this.status.setConnection(call.getRemoteAddress().getHostAddress(), call.getRemotePort());
-      if (RpcServer.LOG.isTraceEnabled()) {
-        Optional<User> remoteUser = call.getRequestUser();
-        RpcServer.LOG.trace(call.toShortString() + " executing as " +
-            (remoteUser.isPresent() ? remoteUser.get().getName() : "NULL principal"));
-      }
       Throwable errorThrowable = null;
       String error = null;
       Pair<Message, CellScanner> resultPair = null;
       RpcServer.CurCall.set(call);
-      TraceScope traceScope = null;
       try {
         if (!this.rpcServer.isStarted()) {
           InetSocketAddress address = rpcServer.getListenerAddress();
           throw new ServerNotRunningYetException("Server " +
               (address != null ? address : "(channel closed)") + " is not running yet");
         }
-        String serviceName =
-            call.getService() != null ? call.getService().getDescriptorForType().getName() : "";
-        String methodName = (call.getMethod() != null) ? call.getMethod().getName() : "";
-        String traceString = serviceName + "." + methodName;
-        traceScope = TraceUtil.createTrace(traceString);
         // make the call
         resultPair = this.rpcServer.call(call, this.status);
       } catch (TimeoutIOException e){
         RpcServer.LOG.warn("Can not complete this request in time, drop it: " + call);
         return;
       } catch (Throwable e) {
-        if (e instanceof ServerNotRunningYetException) {
-          // If ServerNotRunningYetException, don't spew stack trace.
-          if (RpcServer.LOG.isTraceEnabled()) {
-            RpcServer.LOG.trace(call.toShortString(), e);
-          }
-        } else {
-          // Don't dump full exception.. just String version
-          RpcServer.LOG.debug(call.toShortString() + ", exception=" + e);
-        }
         errorThrowable = e;
         error = StringUtils.stringifyException(e);
         if (e instanceof Error) {
           throw (Error)e;
         }
       } finally {
-        if (traceScope != null) {
-          traceScope.close();
-        }
         RpcServer.CurCall.set(null);
         if (resultPair != null) {
           this.rpcServer.addCallSize(call.getSize() * -1);

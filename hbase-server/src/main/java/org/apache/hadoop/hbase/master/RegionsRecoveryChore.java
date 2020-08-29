@@ -82,10 +82,6 @@ public class RegionsRecoveryChore extends ScheduledChore {
 
   @Override
   protected void chore() {
-    if (LOG.isTraceEnabled()) {
-      LOG.trace(
-        "Starting up Regions Recovery chore for reopening regions based on storeFileRefCount...");
-    }
     try {
       // only if storeFileRefCountThreshold > 0, consider the feature turned on
       if (storeFileRefCountThreshold > 0) {

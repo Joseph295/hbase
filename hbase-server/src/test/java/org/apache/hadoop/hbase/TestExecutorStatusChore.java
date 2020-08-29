@@ -66,7 +66,7 @@ public class TestExecutorStatusChore {
     assertTrue(serverSource instanceof MetricsRegionServerSourceImpl);
 
     ExecutorStatusChore statusChore = new ExecutorStatusChore(60000,
-        mockedServer, executorService, serverSource);
+        mockedServer, executorService);
 
     AtomicBoolean lock = new AtomicBoolean(true);
     AtomicInteger counter = new AtomicInteger(0);
@@ -88,9 +88,6 @@ public class TestExecutorStatusChore {
     assertEquals(maxThreads, counter.get());
 
     statusChore.chore();
-    Pair<Long, Long> executorStatus = statusChore.getExecutorStatus("RS_PARALLEL_SEEK");
-    assertEquals(maxThreads, executorStatus.getFirst().intValue()); // running
-    assertEquals(1, executorStatus.getSecond().intValue()); // pending
 
     // Now interrupt the running Executor
     synchronized (lock) {

@@ -57,11 +57,11 @@ public class TestCleanerChore {
 
   private static final Logger LOG = LoggerFactory.getLogger(TestCleanerChore.class);
   private static final HBaseTestingUtility UTIL = new HBaseTestingUtility();
-  private static DirScanPool POOL;
+  private static CleanerThreadPool POOL;
 
   @BeforeClass
   public static void setup() {
-    POOL = new DirScanPool(UTIL.getConfiguration());
+    POOL = new CleanerThreadPool(UTIL.getConfiguration());
   }
 
   @AfterClass
@@ -501,7 +501,7 @@ public class TestCleanerChore {
   private static class AllValidPaths extends CleanerChore<BaseHFileCleanerDelegate> {
 
     public AllValidPaths(String name, Stoppable s, Configuration conf, FileSystem fs,
-      Path oldFileDir, String confkey, DirScanPool pool) {
+      Path oldFileDir, String confkey, CleanerThreadPool pool) {
       super(name, Integer.MAX_VALUE, s, conf, fs, oldFileDir, confkey, pool);
     }
 

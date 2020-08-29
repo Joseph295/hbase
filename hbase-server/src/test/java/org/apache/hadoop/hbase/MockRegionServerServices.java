@@ -300,11 +300,6 @@ public class MockRegionServerServices implements RegionServerServices {
   }
 
   @Override
-  public MetricsRegionServer getMetrics() {
-    return null;
-  }
-
-  @Override
   public EntityLock regionLock(List<RegionInfo> regionInfos, String description, Abortable abort)
       throws IOException {
     return null;

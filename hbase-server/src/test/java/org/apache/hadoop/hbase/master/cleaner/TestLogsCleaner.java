@@ -90,13 +90,13 @@ public class TestLogsCleaner {
 
   private static Configuration conf;
 
-  private static DirScanPool POOL;
+  private static CleanerThreadPool POOL;
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     TEST_UTIL.startMiniZKCluster();
     TEST_UTIL.startMiniDFSCluster(1);
-    POOL = new DirScanPool(TEST_UTIL.getConfiguration());
+    POOL = new CleanerThreadPool(TEST_UTIL.getConfiguration());
   }
 
   @AfterClass

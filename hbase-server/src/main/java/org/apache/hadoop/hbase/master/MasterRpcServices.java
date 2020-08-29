@@ -626,7 +626,7 @@ public class MasterRpcServices extends RSRpcServices implements
     ServerName sn = ProtobufUtil.toServerName(request.getServer());
     String msg = sn + " reported a fatal error:\n" + errorText;
     LOG.warn(msg);
-    master.rsFatals.add(msg);
+    master.memoryBoundedLogMessageBuffer.add(msg);
     return ReportRSFatalErrorResponse.newBuilder().build();
   }
 

@@ -346,7 +346,7 @@ public class HRegionServer extends Thread implements
   private volatile RegionServerStatusService.BlockingInterface rssStub;
   private volatile LockService.BlockingInterface lockStub;
   // RPC client. Used to make the stub above that does region server status checking.
-  private RpcClient rpcClient;
+  private RpcClient masterRpcClient;
 
   private UncaughtExceptionHandler uncaughtExceptionHandler;
 
@@ -392,9 +392,6 @@ public class HRegionServer extends Thread implements
 
   // Cluster Status Tracker
   protected final ClusterStatusTracker clusterStatusTracker;
-
-  // Log Splitting Worker
-  private SplitLogWorker splitLogWorker;
 
   // A sleeper that sleeps for msgInterval.
   protected final Sleeper sleeper;
@@ -809,7 +806,7 @@ public class HRegionServer extends Thread implements
       initializeZooKeeper();
       setupClusterConnection();
       // Setup RPC client for master communication
-      this.rpcClient = asyncClusterConnection.getRpcClient();
+      this.masterRpcClient = asyncClusterConnection.getRpcClient();
     } catch (Throwable t) {
       // Call stop if error or process will stick around for ever since server
       // puts up non-daemon threads.
@@ -1007,9 +1004,6 @@ public class HRegionServer extends Thread implements
     if (this.leaseManager != null) {
       this.leaseManager.closeAfterLeasesExpire();
     }
-    if (this.splitLogWorker != null) {
-      splitLogWorker.stop();
-    }
     if (this.infoServer != null) {
       LOG.info("Stopping infoServer");
       try {
@@ -1099,8 +1093,8 @@ public class HRegionServer extends Thread implements
     if (this.lockStub != null) {
       this.lockStub = null;
     }
-    if (this.rpcClient != null) {
-      this.rpcClient.close();
+    if (this.masterRpcClient != null) {
+      this.masterRpcClient.close();
     }
     if (this.leaseManager != null) {
       this.leaseManager.close();
@@ -1825,13 +1819,6 @@ public class HRegionServer extends Thread implements
     sinkConf.setInt(HConstants.HBASE_RPC_TIMEOUT_KEY,
         conf.getInt("hbase.log.replay.rpc.timeout", 30000)); // default 30 seconds
     sinkConf.setInt(HConstants.HBASE_CLIENT_SERVERSIDE_RETRIES_MULTIPLIER, 1);
-    if (this.coordinatedStateManager != null && conf.getBoolean(HBASE_SPLIT_WAL_COORDINATED_BY_ZK,
-      DEFAULT_HBASE_SPLIT_COORDINATED_BY_ZK)) {
-      // SplitLogWorker needs csm. If none, don't start this.
-      this.splitLogWorker = new SplitLogWorker(sinkConf, this, this, walFactory);
-      splitLogWorker.start();
-      LOG.debug("SplitLogWorker started");
-    }
 
     // Memstore services.
     startHeapMemoryManager();
@@ -2435,15 +2422,15 @@ public class HRegionServer extends Thread implements
     if (rssStub != null) {
       return masterAddressTracker.getMasterAddress();
     }
-    ServerName sn = null;
+    ServerName serverName = null;
     long previousLogTime = 0;
-    RegionServerStatusService.BlockingInterface intRssStub = null;
-    LockService.BlockingInterface intLockStub = null;
+    RegionServerStatusService.BlockingInterface regionServerStatusServiceInterface = null;
+    LockService.BlockingInterface lockServiceInterface = null;
     boolean interrupted = false;
     try {
       while (keepLooping()) {
-        sn = this.masterAddressTracker.getMasterAddress(refresh);
-        if (sn == null) {
+        serverName = this.masterAddressTracker.getMasterAddress(refresh);
+        if (serverName == null) {
           if (!keepLooping()) {
             // give up with no connection.
             LOG.debug("No master found and cluster is stopped; bailing out");
@@ -2461,19 +2448,19 @@ public class HRegionServer extends Thread implements
         }
 
         // If we are on the active master, use the shortcut
-        if (this instanceof HMaster && sn.equals(getServerName())) {
+        if (this instanceof HMaster && serverName.equals(getServerName())) {
           // Wrap the shortcut in a class providing our version to the calls where it's relevant.
           // Normally, RpcServer-based threadlocals do that.
-          intRssStub = new MasterRpcServicesVersionWrapper(((HMaster)this).getMasterRpcServices());
-          intLockStub = ((HMaster)this).getMasterRpcServices();
+          regionServerStatusServiceInterface = new MasterRpcServicesVersionWrapper(((HMaster)this).getMasterRpcServices());
+          lockServiceInterface = ((HMaster)this).getMasterRpcServices();
           break;
         }
         try {
           BlockingRpcChannel channel =
-            this.rpcClient.createBlockingRpcChannel(sn, userProvider.getCurrent(),
+            this.masterRpcClient.createBlockingRpcChannel(serverName, userProvider.getCurrent(),
               shortOperationTimeout);
-          intRssStub = RegionServerStatusService.newBlockingStub(channel);
-          intLockStub = LockService.newBlockingStub(channel);
+          regionServerStatusServiceInterface = RegionServerStatusService.newBlockingStub(channel);
+          lockServiceInterface = LockService.newBlockingStub(channel);
           break;
         } catch (IOException e) {
           if (System.currentTimeMillis() > (previousLogTime + 1000)) {
@@ -2496,9 +2483,9 @@ public class HRegionServer extends Thread implements
         Thread.currentThread().interrupt();
       }
     }
-    this.rssStub = intRssStub;
-    this.lockStub = intLockStub;
-    return sn;
+    this.rssStub = regionServerStatusServiceInterface;
+    this.lockStub = lockServiceInterface;
+    return serverName;
   }
 
   /**

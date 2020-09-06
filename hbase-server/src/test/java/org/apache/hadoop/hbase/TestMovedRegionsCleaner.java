@@ -51,13 +51,6 @@ public class TestMovedRegionsCleaner {
     protected int movedRegionCleanerPeriod() {
       return 500;
     }
-
-    @Override protected void cleanMovedRegions() {
-      // count the number of calls that are being made to this
-      //
-      numCalls++;
-      super.cleanMovedRegions();
-    }
   }
 
   @After public void after() throws Exception {

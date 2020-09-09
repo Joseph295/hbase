@@ -88,9 +88,6 @@ public class CompactedHFilesDischarger extends ScheduledChore {
     List<HRegion> onlineRegions = (List<HRegion>) regionServerServices.getRegions();
     if (onlineRegions == null) return;
     for (HRegion region : onlineRegions) {
-      if (LOG.isTraceEnabled()) {
-        LOG.trace("Started compacted hfiles cleaner on " + region.getRegionInfo());
-      }
       for (HStore store : region.getStores()) {
         try {
           if (useExecutor && regionServerServices != null) {
@@ -102,19 +99,11 @@ public class CompactedHFilesDischarger extends ScheduledChore {
             // available
             store.closeAndArchiveCompactedFiles();
           }
-          if (LOG.isTraceEnabled()) {
-            LOG.trace("Completed archiving the compacted files for the region "
-                + region.getRegionInfo() + " under the store " + store.getColumnFamilyName());
-          }
         } catch (Exception e) {
           LOG.error("Exception while trying to close and archive the compacted store "
               + "files of the store  " + store.getColumnFamilyName() + " in the" + " region "
               + region.getRegionInfo(), e);
         }
-      }
-      if (LOG.isTraceEnabled()) {
-        LOG.trace(
-            "Completed the compacted hfiles cleaner for the region " + region.getRegionInfo());
       }
     }
   }

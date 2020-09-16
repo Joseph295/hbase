@@ -278,7 +278,7 @@ public class TestReplicasClient {
   }
 
   private void checkRegionIsOpened(RegionInfo hri) throws Exception {
-    while (!getRS().getRegionsInTransitionInRS().isEmpty()) {
+    while (!getRS().getRegionsInTransition().isEmpty()) {
       Thread.sleep(1);
     }
   }
@@ -289,7 +289,7 @@ public class TestReplicasClient {
 
   private void checkRegionIsClosed(String encodedRegionName) throws Exception {
 
-    while (!getRS().getRegionsInTransitionInRS().isEmpty()) {
+    while (!getRS().getRegionsInTransition().isEmpty()) {
       Thread.sleep(1);
     }
 

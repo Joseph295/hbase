@@ -242,7 +242,7 @@ public class HRegionServer extends Thread implements
    * true - if open region action in progress
    * false - if close region action in progress
    */
-  private final ConcurrentMap<byte[], Boolean> regionsInTransitionInRS =
+  private final ConcurrentMap<byte[], Boolean> regionsInTransition =
     new ConcurrentSkipListMap<>(Bytes.BYTES_COMPARATOR);
 
   /**
@@ -527,7 +527,7 @@ public class HRegionServer extends Thread implements
   private static final String REGIONSERVER_CODEC = "hbase.regionserver.codecs";
 
   // A timer to shutdown the process if abort takes too long
-  private Timer abortMonitor;
+  private Timer abortTimer;
 
   /**
    * Starts a HRegionServer at the default location.
@@ -1306,7 +1306,7 @@ public class HRegionServer extends Thread implements
         // iterator of onlineRegions to close all user regions.
         for (Map.Entry<String, HRegion> e : this.onlineRegions.entrySet()) {
           RegionInfo hri = e.getValue().getRegionInfo();
-          if (!this.regionsInTransitionInRS.containsKey(hri.getEncodedNameAsBytes()) &&
+          if (!this.regionsInTransition.containsKey(hri.getEncodedNameAsBytes()) &&
               !closedRegions.contains(hri.getEncodedName())) {
             closedRegions.add(hri.getEncodedName());
             // Don't update zk with this close transition; pass false.
@@ -1314,14 +1314,14 @@ public class HRegionServer extends Thread implements
           }
         }
         // No regions in RIT, we could stop waiting now.
-        if (this.regionsInTransitionInRS.isEmpty()) {
+        if (this.regionsInTransition.isEmpty()) {
           if (!onlineRegions.isEmpty()) {
             LOG.info("We were exiting though online regions are not empty," +
                 " because some regions failed closing");
           }
           break;
         } else {
-          LOG.debug("Waiting on {}", this.regionsInTransitionInRS.keySet().stream().
+          LOG.debug("Waiting on {}", this.regionsInTransition.keySet().stream().
             map(e -> Bytes.toString(e)).collect(Collectors.joining(", ")));
         }
         if (sleepInterrupted(200)) {
@@ -2311,8 +2311,8 @@ public class HRegionServer extends Thread implements
 
   // Limits the time spent in the shutdown process.
   private void scheduleAbortTimer() {
-    if (this.abortMonitor == null) {
-      this.abortMonitor = new Timer("Abort regionserver monitor", true);
+    if (this.abortTimer == null) {
+      this.abortTimer = new Timer("Abort regionserver monitor", true);
       TimerTask abortTimeoutTask = null;
       try {
         Constructor<? extends TimerTask> timerTaskCtor =
@@ -2324,7 +2324,7 @@ public class HRegionServer extends Thread implements
         LOG.warn("Initialize abort timeout task failed", e);
       }
       if (abortTimeoutTask != null) {
-        abortMonitor.schedule(abortTimeoutTask, conf.getLong(ABORT_TIMEOUT, DEFAULT_ABORT_TIMEOUT));
+        abortTimer.schedule(abortTimeoutTask, conf.getLong(ABORT_TIMEOUT, DEFAULT_ABORT_TIMEOUT));
       }
     }
   }
@@ -2767,8 +2767,8 @@ public class HRegionServer extends Thread implements
   }
 
   @Override
-  public ConcurrentMap<byte[], Boolean> getRegionsInTransitionInRS() {
-    return this.regionsInTransitionInRS;
+  public ConcurrentMap<byte[], Boolean> getRegionsInTransition() {
+    return this.regionsInTransition;
   }
 
   @Override
@@ -3000,13 +3000,13 @@ public class HRegionServer extends Thread implements
     }
 
     // previous can come back 'null' if not in map.
-    final Boolean previous = this.regionsInTransitionInRS.putIfAbsent(Bytes.toBytes(encodedName),
+    final Boolean previous = this.regionsInTransition.putIfAbsent(Bytes.toBytes(encodedName),
         Boolean.FALSE);
 
     if (Boolean.TRUE.equals(previous)) {
       LOG.info("Received CLOSE for the region:" + encodedName + " , which we are already " +
           "trying to OPEN. Cancelling OPENING.");
-      if (!regionsInTransitionInRS.replace(Bytes.toBytes(encodedName), previous, Boolean.FALSE)) {
+      if (!regionsInTransition.replace(Bytes.toBytes(encodedName), previous, Boolean.FALSE)) {
         // The replace failed. That should be an exceptional case, but theoretically it can happen.
         // We're going to try to do a standard close then.
         LOG.warn("The opening for region " + encodedName + " was done before we could cancel it." +
@@ -3031,7 +3031,7 @@ public class HRegionServer extends Thread implements
 
     if (actualRegion == null) {
       LOG.debug("Received CLOSE for a region which is not online, and we're not opening.");
-      this.regionsInTransitionInRS.remove(Bytes.toBytes(encodedName));
+      this.regionsInTransition.remove(Bytes.toBytes(encodedName));
       // The master deletes the znode when it receives this exception.
       throw new NotServingRegionException("The region " + encodedName +
           " is not online, and is not opening.");
@@ -3110,7 +3110,7 @@ public class HRegionServer extends Thread implements
       if (moveInfo != null) {
         throw new RegionMovedException(moveInfo.getServerName(), moveInfo.getSeqNum());
       }
-      Boolean isOpening = this.regionsInTransitionInRS.get(Bytes.toBytes(encodedRegionName));
+      Boolean isOpening = this.regionsInTransition.get(Bytes.toBytes(encodedRegionName));
       String regionNameStr = regionName == null?
         encodedRegionName: Bytes.toStringBinary(regionName);
       if (isOpening != null && isOpening) {

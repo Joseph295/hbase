@@ -77,7 +77,7 @@ public class UnassignRegionHandler extends EventHandler {
   public void process() throws IOException {
     HRegionServer rs = getServer();
     byte[] encodedNameBytes = Bytes.toBytes(encodedName);
-    Boolean previous = rs.getRegionsInTransitionInRS().putIfAbsent(encodedNameBytes, Boolean.FALSE);
+    Boolean previous = rs.getRegionsInTransition().putIfAbsent(encodedNameBytes, Boolean.FALSE);
     if (previous != null) {
       if (previous) {
         // This could happen as we will update the region state to OPEN when calling
@@ -98,7 +98,7 @@ public class UnassignRegionHandler extends EventHandler {
       LOG.debug(
         "Received CLOSE for a region {} which is not online, and we're not opening/closing.",
         encodedName);
-      rs.getRegionsInTransitionInRS().remove(encodedNameBytes, Boolean.FALSE);
+      rs.getRegionsInTransition().remove(encodedNameBytes, Boolean.FALSE);
       return;
     }
     String regionName = region.getRegionInfo().getEncodedName();
@@ -115,7 +115,7 @@ public class UnassignRegionHandler extends EventHandler {
       // XXX: Is this still possible? The old comment says about split, but now split is done at
       // master side, so...
       LOG.warn("Can't close region {}, was already closed during close()", regionName);
-      rs.getRegionsInTransitionInRS().remove(encodedNameBytes, Boolean.FALSE);
+      rs.getRegionsInTransition().remove(encodedNameBytes, Boolean.FALSE);
       return;
     }
     rs.removeRegion(region, destination);
@@ -126,7 +126,7 @@ public class UnassignRegionHandler extends EventHandler {
     }
     // Cache the close region procedure id after report region transition succeed.
     rs.finishRegionProcedure(closeProcId);
-    rs.getRegionsInTransitionInRS().remove(encodedNameBytes, Boolean.FALSE);
+    rs.getRegionsInTransition().remove(encodedNameBytes, Boolean.FALSE);
     LOG.info("Closed {}", regionName);
   }
 
@@ -135,7 +135,7 @@ public class UnassignRegionHandler extends EventHandler {
     LOG.warn("Fatal error occurred while closing region {}, aborting...", encodedName, t);
     // Clear any reference in getServer().getRegionsInTransitionInRS() otherwise can hold up
     // regionserver abort on cluster shutdown. HBASE-23984.
-    getServer().getRegionsInTransitionInRS().remove(Bytes.toBytes(this.encodedName));
+    getServer().getRegionsInTransition().remove(Bytes.toBytes(this.encodedName));
     getServer().abort("Failed to close region " + encodedName + " and can not recover", t);
   }
 

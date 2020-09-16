@@ -76,7 +76,7 @@ public class AssignRegionHandler extends EventHandler {
     LOG.warn("Failed to open region {}, will report to master", regionInfo.getRegionNameAsString(),
       error);
     HRegionServer rs = getServer();
-    rs.getRegionsInTransitionInRS().remove(regionInfo.getEncodedNameAsBytes(), Boolean.TRUE);
+    rs.getRegionsInTransition().remove(regionInfo.getEncodedNameAsBytes(), Boolean.TRUE);
     if (!rs.reportRegionStateTransition(new RegionStateTransitionContext(TransitionCode.FAILED_OPEN,
       HConstants.NO_SEQNUM, openProcId, masterSystemTime, regionInfo))) {
       throw new IOException(
@@ -100,7 +100,7 @@ public class AssignRegionHandler extends EventHandler {
       // reportRegionStateTransition any more.
       return;
     }
-    Boolean previous = rs.getRegionsInTransitionInRS().putIfAbsent(encodedNameBytes, Boolean.TRUE);
+    Boolean previous = rs.getRegionsInTransition().putIfAbsent(encodedNameBytes, Boolean.TRUE);
     if (previous != null) {
       if (previous) {
         // The region is opening and this maybe a retry on the rpc call, it is safe to ignore it.
@@ -142,7 +142,7 @@ public class AssignRegionHandler extends EventHandler {
     LOG.info("Opened {}", regionName);
     // Cache the open region procedure id after report region transition succeed.
     rs.finishRegionProcedure(openProcId);
-    Boolean current = rs.getRegionsInTransitionInRS().remove(regionInfo.getEncodedNameAsBytes());
+    Boolean current = rs.getRegionsInTransition().remove(regionInfo.getEncodedNameAsBytes());
   }
 
   @Override
@@ -151,7 +151,7 @@ public class AssignRegionHandler extends EventHandler {
       regionInfo.getRegionNameAsString(), t);
     // Clear any reference in getServer().getRegionsInTransitionInRS() otherwise can hold up
     // regionserver abort on cluster shutdown. HBASE-23984.
-    getServer().getRegionsInTransitionInRS().remove(regionInfo.getEncodedNameAsBytes());
+    getServer().getRegionsInTransition().remove(regionInfo.getEncodedNameAsBytes());
     getServer().abort(
       "Failed to open region " + regionInfo.getRegionNameAsString() + " and can not recover", t);
   }

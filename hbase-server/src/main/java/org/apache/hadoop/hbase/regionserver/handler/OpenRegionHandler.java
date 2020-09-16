@@ -133,7 +133,7 @@ public class OpenRegionHandler extends EventHandler {
       if (!openSuccessful) {
         doCleanUpOnFailedOpen(region);
       }
-      final Boolean current = this.rsServices.getRegionsInTransitionInRS().
+      final Boolean current = this.rsServices.getRegionsInTransition().
           remove(this.regionInfo.getEncodedNameAsBytes());
 
       // Let's check if we have met a race condition on open cancellation....
@@ -317,7 +317,7 @@ public class OpenRegionHandler extends EventHandler {
   private static boolean isRegionStillOpening(
       RegionInfo regionInfo, RegionServerServices rsServices) {
     byte[] encodedName = regionInfo.getEncodedNameAsBytes();
-    Boolean action = rsServices.getRegionsInTransitionInRS().get(encodedName);
+    Boolean action = rsServices.getRegionsInTransition().get(encodedName);
     return Boolean.TRUE.equals(action); // true means opening for RIT
   }
 

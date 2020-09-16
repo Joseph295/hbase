@@ -121,7 +121,7 @@ public class CloseRegionHandler extends EventHandler {
       // Clear any reference in getServer().getRegionsInTransitionInRS() on success or failure,
       // since a reference was added before this CRH was invoked. If we don't clear it, it can
       // hold up regionserver abort on cluster shutdown. HBASE-23984.
-      this.rsServices.getRegionsInTransitionInRS().remove(regionInfo.getEncodedNameAsBytes());
+      this.rsServices.getRegionsInTransition().remove(regionInfo.getEncodedNameAsBytes());
     }
   }
 

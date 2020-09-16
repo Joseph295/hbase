@@ -96,11 +96,11 @@ public class TestExceptionInUnassignedRegion {
     Assert.assertEquals("Should be two RS since other is aborted", 2,
       UTIL.getMiniHBaseCluster().getLiveRegionServerThreads().size());
     Assert.assertNull("RIT Map doesn't have correct value",
-      getRegionServer(0).getRegionsInTransitionInRS().get(hri.getEncodedNameAsBytes()));
+      getRegionServer(0).getRegionsInTransition().get(hri.getEncodedNameAsBytes()));
     Assert.assertNull("RIT Map doesn't have correct value",
-      getRegionServer(1).getRegionsInTransitionInRS().get(hri.getEncodedNameAsBytes()));
+      getRegionServer(1).getRegionsInTransition().get(hri.getEncodedNameAsBytes()));
     Assert.assertNull("RIT Map doesn't have correct value",
-      getRegionServer(2).getRegionsInTransitionInRS().get(hri.getEncodedNameAsBytes()));
+      getRegionServer(2).getRegionsInTransition().get(hri.getEncodedNameAsBytes()));
   }
 
   private HRegionServer getRegionServer(int index) {

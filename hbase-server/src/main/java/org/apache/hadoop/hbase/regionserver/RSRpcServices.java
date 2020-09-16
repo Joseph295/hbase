@@ -2037,7 +2037,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
         }
         LOG.info("Open " + region.getRegionNameAsString());
 
-        final Boolean previous = regionServer.getRegionsInTransitionInRS().putIfAbsent(
+        final Boolean previous = regionServer.getRegionsInTransition().putIfAbsent(
           encodedNameBytes, Boolean.TRUE);
 
         if (Boolean.FALSE.equals(previous)) {
@@ -2048,7 +2048,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
             regionServer.abort(error);
             throw new IOException(error);
           }
-          regionServer.getRegionsInTransitionInRS().put(encodedNameBytes, Boolean.TRUE);
+          regionServer.getRegionsInTransition().put(encodedNameBytes, Boolean.TRUE);
         }
 
         if (Boolean.TRUE.equals(previous)) {
@@ -2140,7 +2140,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
 
       htd = regionServer.tableDescriptors.get(region.getTable());
 
-      if (regionServer.getRegionsInTransitionInRS().containsKey(encodedNameBytes)) {
+      if (regionServer.getRegionsInTransition().containsKey(encodedNameBytes)) {
         LOG.info("Region is in transition. Skipping warmup " + region);
         return response;
       }

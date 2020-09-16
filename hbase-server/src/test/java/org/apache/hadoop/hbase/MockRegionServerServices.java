@@ -147,7 +147,7 @@ public class MockRegionServerServices implements RegionServerServices {
   }
 
   @Override
-  public ConcurrentSkipListMap<byte[], Boolean> getRegionsInTransitionInRS() {
+  public ConcurrentSkipListMap<byte[], Boolean> getRegionsInTransition() {
     return rit;
   }
 

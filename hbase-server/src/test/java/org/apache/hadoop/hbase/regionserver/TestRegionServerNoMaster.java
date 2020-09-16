@@ -173,7 +173,7 @@ public class TestRegionServerNoMaster {
 
   public static void checkRegionIsOpened(HBaseTestingUtility HTU, HRegionServer rs,
       RegionInfo hri) throws Exception {
-    while (!rs.getRegionsInTransitionInRS().isEmpty()) {
+    while (!rs.getRegionsInTransition().isEmpty()) {
       Thread.sleep(1);
     }
 
@@ -191,7 +191,7 @@ public class TestRegionServerNoMaster {
 
   public static void checkRegionIsClosed(HBaseTestingUtility HTU, HRegionServer rs,
       RegionInfo hri) throws Exception {
-    while (!rs.getRegionsInTransitionInRS().isEmpty()) {
+    while (!rs.getRegionsInTransition().isEmpty()) {
       Thread.sleep(1);
     }
 
@@ -252,7 +252,7 @@ public class TestRegionServerNoMaster {
     checkRegionIsClosed(HTU, getRS(), hri);
 
     // Let do the initial steps, without having a handler
-    getRS().getRegionsInTransitionInRS().put(hri.getEncodedNameAsBytes(), Boolean.TRUE);
+    getRS().getRegionsInTransition().put(hri.getEncodedNameAsBytes(), Boolean.TRUE);
 
     // That's a close without ZK.
     AdminProtos.CloseRegionRequest crr =
@@ -264,7 +264,7 @@ public class TestRegionServerNoMaster {
     }
 
     // The state in RIT should have changed to close
-    Assert.assertEquals(Boolean.FALSE, getRS().getRegionsInTransitionInRS().get(
+    Assert.assertEquals(Boolean.FALSE, getRS().getRegionsInTransition().get(
         hri.getEncodedNameAsBytes()));
 
     // Let's start the open handler

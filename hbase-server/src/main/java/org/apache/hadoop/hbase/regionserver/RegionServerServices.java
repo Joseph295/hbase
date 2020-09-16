@@ -191,7 +191,7 @@ public interface RegionServerServices extends Server, MutableOnlineRegions, Favo
    * Get the regions that are currently being opened or closed in the RS
    * @return map of regions in transition in this RS
    */
-  ConcurrentMap<byte[], Boolean> getRegionsInTransitionInRS();
+  ConcurrentMap<byte[], Boolean> getRegionsInTransition();
 
   /**
    * @return The RegionServer's "Leases" service

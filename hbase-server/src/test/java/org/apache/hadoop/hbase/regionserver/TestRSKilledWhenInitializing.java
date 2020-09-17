@@ -204,7 +204,7 @@ public class TestRSKilledWhenInitializing {
     }
 
     @Override
-    protected void handleReportForDutyResponse(RegionServerStartupResponse c)
+    protected void handleStartupResponseFromMaster(RegionServerStartupResponse regionServerStartupResponse)
     throws IOException {
       if (killedRS.compareAndSet(null, getServerName())) {
         // Make sure Master is up so it will see the removal of the ephemeral znode for this RS.
@@ -213,7 +213,7 @@ public class TestRSKilledWhenInitializing {
         }
         super.kill();
       } else {
-        super.handleReportForDutyResponse(c);
+        super.handleStartupResponseFromMaster(regionServerStartupResponse);
       }
     }
   }

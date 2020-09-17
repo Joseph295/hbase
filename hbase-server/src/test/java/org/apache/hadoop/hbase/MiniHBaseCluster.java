@@ -149,9 +149,9 @@ public class MiniHBaseCluster extends HBaseCluster {
      */
 
     @Override
-    protected void handleReportForDutyResponse(
-        final RegionServerStartupResponse c) throws IOException {
-      super.handleReportForDutyResponse(c);
+    protected void handleStartupResponseFromMaster(
+        final RegionServerStartupResponse regionServerStartupResponse) throws IOException {
+      super.handleStartupResponseFromMaster(regionServerStartupResponse);
       // Run this thread to shutdown our filesystem on way out.
       this.shutdownThread = new SingleFileSystemShutdownThread(getFileSystem());
     }

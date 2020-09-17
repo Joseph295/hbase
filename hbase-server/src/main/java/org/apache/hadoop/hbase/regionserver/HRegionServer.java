@@ -934,7 +934,7 @@ public class HRegionServer extends Thread implements
             LOG.warn("reportForDuty failed; sleeping {} ms and then retrying.", sleepTime);
             this.sleeper.sleep(sleepTime);
           } else {
-            handleReportForDutyResponse(w);
+            handleStartupResponseFromMaster(w);
             break;
           }
         }
@@ -1227,14 +1227,14 @@ public class HRegionServer extends Thread implements
    * Builds the region size report and sends it to the master. Upon successful sending of the
    * report, the region sizes that were sent are marked as sent.
    *
-   * @param rss The stub to send to the Master
+   * @param regionServerStatusService The stub to send to the Master
    * @param regionSizeStore The store containing region sizes
    */
-  private void buildReportAndSend(RegionServerStatusService.BlockingInterface rss,
+  private void buildReportAndSend(RegionServerStatusService.BlockingInterface regionServerStatusService,
       RegionSizeStore regionSizeStore) throws ServiceException {
     RegionSpaceUseReportRequest request =
         buildRegionSpaceUseReportRequest(Objects.requireNonNull(regionSizeStore));
-    rss.reportRegionSpaceUse(null, request);
+    regionServerStatusService.reportRegionSpaceUse(null, request);
   }
 
   /**
@@ -1374,44 +1374,19 @@ public class HRegionServer extends Thread implements
   /*
    * Run init. Sets up wal and starts up all server threads.
    *
-   * @param c Extra configuration.
+   * @param regionServerStartupResponse Extra configuration.
    */
-  protected void handleReportForDutyResponse(final RegionServerStartupResponse c)
+  protected void handleStartupResponseFromMaster(final RegionServerStartupResponse regionServerStartupResponse)
   throws IOException {
     try {
       boolean updateRootDir = false;
-      for (NameStringPair e : c.getMapEntriesList()) {
+      for (NameStringPair e : regionServerStartupResponse.getMapEntriesList()) {
         String key = e.getName();
-        // The hostname the master sees us as.
-        if (key.equals(HConstants.KEY_FOR_HOSTNAME_SEEN_BY_MASTER)) {
-          String hostnameFromMasterPOV = e.getValue();
-          this.serverName = ServerName.valueOf(hostnameFromMasterPOV, rpcServices.isa.getPort(),
-              this.startcode);
-          if (!StringUtils.isBlank(useThisHostnameInstead) &&
-              !hostnameFromMasterPOV.equals(useThisHostnameInstead)) {
-            String msg = "Master passed us a different hostname to use; was=" +
-                this.useThisHostnameInstead + ", but now=" + hostnameFromMasterPOV;
-            LOG.error(msg);
-            throw new IOException(msg);
-          }
-          if (StringUtils.isBlank(useThisHostnameInstead) &&
-              !hostnameFromMasterPOV.equals(rpcServices.isa.getHostName())) {
-            String msg = "Master passed us a different hostname to use; was=" +
-                rpcServices.isa.getHostName() + ", but now=" + hostnameFromMasterPOV;
-            LOG.error(msg);
-          }
-          continue;
-        }
-
         String value = e.getValue();
         if (key.equals(HConstants.HBASE_DIR)) {
           if (value != null && !value.equals(conf.get(HConstants.HBASE_DIR))) {
             updateRootDir = true;
           }
-        }
-
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Config from master: " + key + "=" + value);
         }
         this.conf.set(key, value);
       }

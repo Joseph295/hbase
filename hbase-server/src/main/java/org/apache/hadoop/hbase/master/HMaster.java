@@ -17,7 +17,9 @@
  */
 package org.apache.hadoop.hbase.master;
 
+import static org.apache.hadoop.hbase.HConstants.DEFAULT_HBASE_SPLIT_COORDINATED_BY_ZK;
 import static org.apache.hadoop.hbase.HConstants.HBASE_MASTER_LOGCLEANER_PLUGINS;
+import static org.apache.hadoop.hbase.HConstants.HBASE_SPLIT_WAL_COORDINATED_BY_ZK;
 import static org.apache.hadoop.hbase.util.DNS.MASTER_HOSTNAME_KEY;
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -944,6 +946,10 @@ public class HMaster extends HRegionServer implements MasterServices {
     // loading.
     this.serverManager = createServerManager(this);
     this.syncReplicationReplayWALManager = new SyncReplicationReplayWALManager(this);
+    if (!conf.getBoolean(HBASE_SPLIT_WAL_COORDINATED_BY_ZK,
+        DEFAULT_HBASE_SPLIT_COORDINATED_BY_ZK)) {
+      this.splitWALManager = new SplitWALManager(this);
+    }
 
     // initialize master local region
     masterRegion = MasterRegionFactory.create(this);

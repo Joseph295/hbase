@@ -172,6 +172,11 @@ public class TestHbck {
   }
 
   @Test
+  public void testParentBypassProcedurePersistence() throws Exception {
+
+  }
+
+  @Test
   public void testSetTableStateInMeta() throws Exception {
     Hbck hbck = getHbck();
     // set table state to DISABLED

@@ -338,4 +338,9 @@ public class TestProcedureExecution {
     assertEquals("wproc-child-execute", state.get(1));
     assertEquals("wproc-rollback", state.get(2));
   }
+
+  @Test
+  public void testParentBypassProcedurePersistence() {
+
+  }
 }

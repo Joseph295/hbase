@@ -49,6 +49,7 @@ import org.apache.hadoop.hbase.procedure2.ProcedureExecutor;
 import org.apache.hadoop.hbase.procedure2.ProcedureSuspendedException;
 import org.apache.hadoop.hbase.procedure2.ProcedureTestingUtility;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.ProcedureProtos;
 import org.apache.hadoop.hbase.testclassification.ClientTests;
 import org.apache.hadoop.hbase.testclassification.LargeTests;
 import org.apache.hadoop.hbase.testclassification.MediumTests;
@@ -102,6 +103,7 @@ public class TestHbck2 {
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
     TEST_UTIL.shutdownMiniCluster();
+    TEST_UTIL.shutdownMiniZKCluster();
   }
 
   @Before
@@ -113,16 +115,14 @@ public class TestHbck2 {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     protected Procedure[] execute(final MasterProcedureEnv env) throws ProcedureSuspendedException {
-      while(EnvironmentEdgeManager.currentTime() < EnvironmentEdgeManager.currentTime()) {
-        try {
-          TEST_UTIL.getHBaseCluster().getMaster().stopMaster();
-        } catch (Exception e) {
+      setTimeout(10000);
+      try {
+        Thread.sleep(20000);
+      } catch (Exception e) {
 
-        }
       }
-      return null;
+      throw new ProcedureSuspendedException();
     }
-
 
     @Override
     public TableName getTableName() {
@@ -165,31 +165,45 @@ public class TestHbck2 {
 
     BypassParentProcedure bypassParentProcedure = new BypassParentProcedure();
     long parentPid = bypassParentProcedure.getProcId();
-
-    TEST_UTIL.getHBaseCluster().getMaster().getMasterProcedureExecutor().submitProcedure(bypassParentProcedure);
-    long bypassParent = bypassParentProcedure.getProcId();
-    assertNotEquals(-1, bypassParent);
-    TEST_UTIL.getHbck().bypassProcedure(Collections.singletonList(childPid),
-      30000, false, false);
-    TEST_UTIL.getHBaseCluster().getMaster().stopMaster();
-    TEST_UTIL.waitFor(100000, () -> TEST_UTIL.getHBaseCluster().getLiveMasterThreads().size() == 1);
-
-    //TEST_UTIL.getHBaseCluster().startMaster();
-    while(!TEST_UTIL.getHBaseCluster().waitForActiveAndReadyMaster(TimeUnit.MINUTES.toMillis(2))) {
-      Thread.sleep(1000);
-    }
-    HMaster master = TEST_UTIL.getHBaseCluster().getMaster();
+    HMaster master = TEST_UTIL.getMiniHBaseCluster().getMaster();
+    long ppid = master.getMasterProcedureExecutor().submitProcedure(bypassParentProcedure);
+    Thread.sleep(1000);
     List<Procedure<?>> procedures = master.getProcedures();
-    assertNotNull(procedures);
-    int count = 0;
+    long pid = -1;
     for (Procedure<?> procedure : procedures) {
-      long pid = procedure.getProcId();
-      if (bypassPids.contains(pid)) {
-        ++count;
-        assertTrue(((pid == childPid) ?  "Bypassed "  + "child " : "parent ")
-          + "procedure is not persistent", procedure.isBypass() && procedure.isSuccess());
+      if (procedure.getParentProcId() == ppid) {
+        pid = procedure.getProcId();
       }
     }
-    assertEquals("Procedure count is not equals to  bypass", 2, count);
+    assertNotEquals("", -1, pid);
+    //assertEquals("Unexpected procedure count!", 2, procedures.size());
+    //Procedure<?> child = (procedures.get(0).getProcId() == ppid ? procedures.get(1) : procedures.get(0));
+    TEST_UTIL.getHbck().bypassProcedure(Collections.singletonList(pid),
+      30000, false, false);
+    int activeMasterIndex = (TEST_UTIL.getHBaseCluster().getMaster(0).equals(master) ? 0 : 1);
+    TEST_UTIL.getHBaseCluster().stopMaster(activeMasterIndex, false);
+    TEST_UTIL.getHBaseCluster().waitOnMaster(activeMasterIndex);
+
+    assertEquals("Unexpected master threads", 1, TEST_UTIL.getHBaseCluster().getLiveMasterThreads().size());
+    TEST_UTIL.getHBaseCluster().waitForActiveAndReadyMaster(TimeUnit.MINUTES.toMillis(2));
+    master = TEST_UTIL.getMiniHBaseCluster().getMaster();
+    assertNotNull(master);
+    procedures = master.getProcedures();
+    for (Procedure<?> procedure : procedures) {
+      if (procedure.getParentProcId() == ppid) {
+        //assertEquals("", child.getProcId(), procedure.getProcId());
+        assertTrue("pid=" + procedure.getProcId(), procedure.isBypass());
+      } else {
+        // assertTrue(procedure.isBypass());
+      }
+    }
+    for (Procedure<?> procedure : procedures) {
+      if (procedure.getProcId() == ppid) {
+        //assertEquals("", child.getProcId(), procedure.getProcId());
+        assertTrue("ppid=" + procedure.getProcId(), procedure.isBypass());
+      } else {
+        // assertTrue(procedure.isBypass());
+      }
+    }
   }
 }

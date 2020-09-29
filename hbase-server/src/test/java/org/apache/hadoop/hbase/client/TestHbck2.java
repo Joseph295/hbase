@@ -139,6 +139,20 @@ public class TestHbck2 {
     protected void setParentProcId(long parentProcId) {
       super.setParentProcId(parentProcId);
     }
+
+    @Override
+    protected void completionCleanup(final MasterProcedureEnv env) {
+      HMaster master = TEST_UTIL.getMiniHBaseCluster().getMaster();
+      master.stop("We stop here before the parent procedure stop");
+
+      assertEquals("Unexpected master threads", 1, TEST_UTIL.getHBaseCluster().getLiveMasterThreads().size());
+      try {
+        TEST_UTIL.getHBaseCluster().waitForActiveAndReadyMaster(TimeUnit.MINUTES.toMillis(2));
+      } catch (IOException e) {
+        LOG.error("Exception when waitForActiveAndReadyMaster", e);
+      }
+      assertNotEquals("The active master is not changed", master, TEST_UTIL.getHBaseCluster().getMaster());
+    }
   }
 
   public static class BypassParentProcedure extends ProcedureTestingUtility.NoopProcedure<MasterProcedureEnv> implements TableProcedureInterface {
@@ -180,12 +194,7 @@ public class TestHbck2 {
     //Procedure<?> child = (procedures.get(0).getProcId() == ppid ? procedures.get(1) : procedures.get(0));
     TEST_UTIL.getHbck().bypassProcedure(Collections.singletonList(pid),
       30000, false, false);
-    int activeMasterIndex = (TEST_UTIL.getHBaseCluster().getMaster(0).equals(master) ? 0 : 1);
-    TEST_UTIL.getHBaseCluster().stopMaster(activeMasterIndex, false);
-    TEST_UTIL.getHBaseCluster().waitOnMaster(activeMasterIndex);
 
-    assertEquals("Unexpected master threads", 1, TEST_UTIL.getHBaseCluster().getLiveMasterThreads().size());
-    TEST_UTIL.getHBaseCluster().waitForActiveAndReadyMaster(TimeUnit.MINUTES.toMillis(2));
     master = TEST_UTIL.getMiniHBaseCluster().getMaster();
     assertNotNull(master);
     procedures = master.getProcedures();

@@ -35,6 +35,7 @@ import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.StartMiniClusterOption;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.Waiter;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.MasterObserver;
@@ -195,7 +196,16 @@ public class TestHbck2 {
     TEST_UTIL.getHbck().bypassProcedure(Collections.singletonList(pid),
       30000, false, false);
 
+    TEST_UTIL.waitFor(30000, 1000, true, new Waiter.Predicate<IOException>() {
+      @Override
+      public boolean evaluate() throws IOException {
+        return (TEST_UTIL.getHBaseCluster().getMasterThreads().size() == 1)
+            && (TEST_UTIL.getHBaseCluster().getMaster() != null);
+      }
+    });
+
     master = TEST_UTIL.getMiniHBaseCluster().getMaster();
+    assertFalse("There is no master threads", TEST_UTIL.getMiniHBaseCluster().getMasterThreads().isEmpty());
     assertNotNull(master);
     procedures = master.getProcedures();
     for (Procedure<?> procedure : procedures) {

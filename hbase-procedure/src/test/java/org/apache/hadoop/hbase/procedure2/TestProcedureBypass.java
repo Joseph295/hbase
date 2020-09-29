@@ -118,7 +118,10 @@ public class TestProcedureBypass {
     SuspendProcedure suspendProcedure = (SuspendProcedure)procExecutor.getProcedures().stream()
         .filter(p -> p.getParentProcId() == rootId).collect(Collectors.toList()).get(0);
     assertTrue(procExecutor.bypassProcedure(suspendProcedure.getProcId(), 1000, false, false));
-    htu.waitFor(5000, () -> proc.isSuccess() && proc.isBypass());
+    // htu.waitFor(5000, () -> proc.isSuccess() && proc.isBypass());
+    procStore.stop(false);
+    procStore.start(PROCEDURE_EXECUTOR_SLOTS);
+//    htu.waitFor(5000, () -> proc.isSuccess() && proc.isBypass());
     LOG.info("{} finished", proc);
   }
 

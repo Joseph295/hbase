@@ -49,6 +49,7 @@ import org.apache.hadoop.hbase.procedure2.Procedure;
 import org.apache.hadoop.hbase.procedure2.ProcedureExecutor;
 import org.apache.hadoop.hbase.procedure2.ProcedureSuspendedException;
 import org.apache.hadoop.hbase.procedure2.ProcedureTestingUtility;
+import org.apache.hadoop.hbase.procedure2.TestProcedureBypass;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.ProcedureProtos;
 import org.apache.hadoop.hbase.testclassification.ClientTests;
@@ -92,7 +93,8 @@ public class TestHbck2 {
 
   private static final TableName TABLE_NAME = TableName.valueOf(TestHbck.class.getSimpleName());
 
-
+  private static class TestProcEnv {
+  }
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -112,10 +114,12 @@ public class TestHbck2 {
     TEST_UTIL.ensureSomeRegionServersAvailable(3);
   }
 
-  public static class BypassChildProcedure extends ProcedureTestingUtility.NoopProcedure<MasterProcedureEnv> implements TableProcedureInterface {
+
+
+  public static class BypassChildProcedure extends ProcedureTestingUtility.NoopProcedure<TestProcEnv>  {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    protected Procedure[] execute(final MasterProcedureEnv env) throws ProcedureSuspendedException {
+    protected Procedure[] execute(final TestProcEnv env) throws ProcedureSuspendedException {
       setTimeout(10000);
       try {
         Thread.sleep(20000);
@@ -160,7 +164,8 @@ public class TestHbck2 {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     protected Procedure[] execute(final MasterProcedureEnv env) throws ProcedureSuspendedException {
-      return new Procedure[]{ new BypassChildProcedure()};
+      // Always suspend the procedure
+      throw new ProcedureSuspendedException();
     }
 
     @Override
@@ -182,7 +187,7 @@ public class TestHbck2 {
     long parentPid = bypassParentProcedure.getProcId();
     HMaster master = TEST_UTIL.getMiniHBaseCluster().getMaster();
     long ppid = master.getMasterProcedureExecutor().submitProcedure(bypassParentProcedure);
-    Thread.sleep(1000);
+    // Thread.sleep(1000);
     List<Procedure<?>> procedures = master.getProcedures();
     long pid = -1;
     for (Procedure<?> procedure : procedures) {

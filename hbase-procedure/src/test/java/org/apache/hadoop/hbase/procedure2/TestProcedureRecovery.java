@@ -186,6 +186,15 @@ public class TestProcedureRecovery {
     }
   }
 
+  public static class TestSuspendProcedure extends ProcedureTestingUtility.NoopProcedure<TestProcEnv> {
+    public TestSuspendProcedure() {}
+
+    @Override
+    protected Procedure[] execute(TestProcEnv env) throws ProcedureSuspendedException {
+      throw new ProcedureSuspendedException();
+    }
+  }
+
   @Test
   public void testNoopLoad() throws Exception {
     restart();

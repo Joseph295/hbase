@@ -130,7 +130,7 @@ public class TestRegionMoverWithRSGroupEnable {
     HRegionServer onlineRS = TEST_UTIL.getMiniHBaseCluster().getRegionServerThreads().stream()
       .map(JVMClusterUtil.RegionServerThread::getRegionServer)
       .filter(rs -> rs.getServerName().getAddress().equals(online)).findFirst().get();
-    assertEquals(9, onlineRS.getNumberOfOnlineRegions());
+    assertEquals(9, onlineRS.getOnlineRegionCount());
   }
 
 }

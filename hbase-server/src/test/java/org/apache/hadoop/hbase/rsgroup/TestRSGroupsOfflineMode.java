@@ -133,7 +133,7 @@ public class TestRSGroupsOfflineMode extends TestRSGroupsBase {
     TEST_UTIL.waitFor(WAIT_TIMEOUT, new Waiter.Predicate<Exception>() {
       @Override
       public boolean evaluate() throws Exception {
-        return groupRS.getNumberOfOnlineRegions() < 1 &&
+        return groupRS.getOnlineRegionCount() < 1 &&
           master.getAssignmentManager().getRegionStates().getRegionsInTransitionCount() < 1;
       }
     });
@@ -143,7 +143,7 @@ public class TestRSGroupsOfflineMode extends TestRSGroupsBase {
     TEST_UTIL.waitFor(WAIT_TIMEOUT, new Waiter.Predicate<Exception>() {
       @Override
       public boolean evaluate() throws Exception {
-        return groupRS.getNumberOfOnlineRegions() == 1;
+        return groupRS.getOnlineRegionCount() == 1;
       }
     });
 

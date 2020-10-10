@@ -879,10 +879,10 @@ public class MiniHBaseCluster extends HBaseCluster {
   public long countServedRegions() {
     long count = 0;
     for (JVMClusterUtil.RegionServerThread rst : getLiveRegionServerThreads()) {
-      count += rst.getRegionServer().getNumberOfOnlineRegions();
+      count += rst.getRegionServer().getOnlineRegionCount();
     }
     for (JVMClusterUtil.MasterThread mt : getLiveMasterThreads()) {
-      count += mt.getMaster().getNumberOfOnlineRegions();
+      count += mt.getMaster().getOnlineRegionCount();
     }
     return count;
   }

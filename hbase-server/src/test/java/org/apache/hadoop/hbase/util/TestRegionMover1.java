@@ -107,16 +107,16 @@ public class TestRegionMover1 {
     MiniHBaseCluster cluster = TEST_UTIL.getHBaseCluster();
     HRegionServer regionServer = cluster.getRegionServer(0);
     String rsName = regionServer.getServerName().getAddress().toString();
-    int numRegions = regionServer.getNumberOfOnlineRegions();
+    int numRegions = regionServer.getOnlineRegionCount();
     RegionMoverBuilder rmBuilder =
       new RegionMoverBuilder(rsName, TEST_UTIL.getConfiguration()).ack(true).maxthreads(8);
     try (RegionMover rm = rmBuilder.build()) {
       LOG.info("Unloading " + regionServer.getServerName());
       rm.unload();
-      assertEquals(0, regionServer.getNumberOfOnlineRegions());
+      assertEquals(0, regionServer.getOnlineRegionCount());
       LOG.info("Successfully Unloaded\nNow Loading");
       rm.load();
-      assertEquals(numRegions, regionServer.getNumberOfOnlineRegions());
+      assertEquals(numRegions, regionServer.getOnlineRegionCount());
       // Repeat the same load. It should be very fast because all regions are already moved.
       rm.load();
     }
@@ -130,7 +130,7 @@ public class TestRegionMover1 {
     MiniHBaseCluster cluster = TEST_UTIL.getHBaseCluster();
     HRegionServer regionServer = cluster.getRegionServer(0);
     String rsName = regionServer.getServerName().getAddress().toString();
-    int numRegions = regionServer.getNumberOfOnlineRegions();
+    int numRegions = regionServer.getOnlineRegionCount();
     RegionMoverBuilder rmBuilder =
       new RegionMoverBuilder(rsName, TEST_UTIL.getConfiguration()).ack(false);
     try (RegionMover rm = rmBuilder.build()) {
@@ -139,7 +139,7 @@ public class TestRegionMover1 {
       TEST_UTIL.waitFor(30000, 1000, new Predicate<Exception>() {
         @Override
         public boolean evaluate() throws Exception {
-          return regionServer.getNumberOfOnlineRegions() == 0;
+          return regionServer.getOnlineRegionCount() == 0;
         }
       });
       LOG.info("Successfully Unloaded\nNow Loading");
@@ -149,7 +149,7 @@ public class TestRegionMover1 {
       TEST_UTIL.waitFor(30000, 1000, new Predicate<Exception>() {
         @Override
         public boolean evaluate() throws Exception {
-          return regionServer.getNumberOfOnlineRegions() == numRegions;
+          return regionServer.getOnlineRegionCount() == numRegions;
         }
       });
     }
@@ -167,7 +167,7 @@ public class TestRegionMover1 {
     HRegionServer excludeServer = cluster.getRegionServer(1);
     String excludeHostname = excludeServer.getServerName().getHostname();
     int excludeServerPort = excludeServer.getServerName().getPort();
-    int regionsExcludeServer = excludeServer.getNumberOfOnlineRegions();
+    int regionsExcludeServer = excludeServer.getOnlineRegionCount();
     String excludeServerName = excludeHostname + ":" + Integer.toString(excludeServerPort);
     fos.write(excludeServerName);
     fos.close();
@@ -180,10 +180,10 @@ public class TestRegionMover1 {
     try (RegionMover rm = rmBuilder.build()) {
       rm.unload();
       LOG.info("Unloading " + rs);
-      assertEquals(0, regionServer.getNumberOfOnlineRegions());
-      assertEquals(regionsExcludeServer, cluster.getRegionServer(1).getNumberOfOnlineRegions());
+      assertEquals(0, regionServer.getOnlineRegionCount());
+      assertEquals(regionsExcludeServer, cluster.getRegionServer(1).getOnlineRegionCount());
       LOG.info("Before:" + regionsExcludeServer + " After:" +
-        cluster.getRegionServer(1).getNumberOfOnlineRegions());
+        cluster.getRegionServer(1).getOnlineRegionCount());
     }
   }
 
@@ -199,22 +199,22 @@ public class TestRegionMover1 {
       String excludeServerName = designatedHostname + ":" + designatedServerPort;
       fos.write(excludeServerName);
     }
-    int regionsInDesignatedServer = designatedServer.getNumberOfOnlineRegions();
+    int regionsInDesignatedServer = designatedServer.getOnlineRegionCount();
     HRegionServer regionServer = cluster.getRegionServer(1);
     String rsName = regionServer.getServerName().getHostname();
     int port = regionServer.getServerName().getPort();
     String rs = rsName + ":" + port;
-    int regionsInRegionServer = regionServer.getNumberOfOnlineRegions();
+    int regionsInRegionServer = regionServer.getOnlineRegionCount();
     RegionMoverBuilder rmBuilder = new RegionMoverBuilder(rs, TEST_UTIL.getConfiguration())
       .designatedFile(designatedFile.getCanonicalPath());
     try (RegionMover rm = rmBuilder.build()) {
       LOG.debug("Unloading {} regions", rs);
       rm.unload();
-      assertEquals(0, regionServer.getNumberOfOnlineRegions());
+      assertEquals(0, regionServer.getOnlineRegionCount());
       assertEquals(regionsInDesignatedServer + regionsInRegionServer,
-        designatedServer.getNumberOfOnlineRegions());
+        designatedServer.getOnlineRegionCount());
       LOG.debug("Before:{} After:{}", regionsInDesignatedServer,
-        designatedServer.getNumberOfOnlineRegions());
+        designatedServer.getOnlineRegionCount());
     }
   }
 
@@ -231,7 +231,7 @@ public class TestRegionMover1 {
       String excludeServerName = designatedHostname + ":" + designatedServerPort;
       fos.write(excludeServerName);
     }
-    int regionsInDesignatedServer = designatedServer.getNumberOfOnlineRegions();
+    int regionsInDesignatedServer = designatedServer.getOnlineRegionCount();
     // create exclude file
     File excludeFile = new File(TEST_UTIL.getDataTestDir().toUri().getPath(), "exclude_file");
     HRegionServer excludeServer = cluster.getRegionServer(1);
@@ -241,13 +241,13 @@ public class TestRegionMover1 {
       String excludeServerName = excludeHostname + ":" + excludeServerPort;
       fos.write(excludeServerName);
     }
-    int regionsInExcludeServer = excludeServer.getNumberOfOnlineRegions();
+    int regionsInExcludeServer = excludeServer.getOnlineRegionCount();
 
     HRegionServer targetRegionServer = cluster.getRegionServer(2);
     String rsName = targetRegionServer.getServerName().getHostname();
     int port = targetRegionServer.getServerName().getPort();
     String rs = rsName + ":" + port;
-    int regionsInTargetRegionServer = targetRegionServer.getNumberOfOnlineRegions();
+    int regionsInTargetRegionServer = targetRegionServer.getOnlineRegionCount();
 
     RegionMoverBuilder rmBuilder = new RegionMoverBuilder(rs, TEST_UTIL.getConfiguration())
       .designatedFile(designatedFile.getCanonicalPath())
@@ -255,14 +255,14 @@ public class TestRegionMover1 {
     try (RegionMover rm = rmBuilder.build()) {
       LOG.debug("Unloading {}", rs);
       rm.unload();
-      assertEquals(0, targetRegionServer.getNumberOfOnlineRegions());
+      assertEquals(0, targetRegionServer.getOnlineRegionCount());
       assertEquals(regionsInDesignatedServer + regionsInTargetRegionServer,
-        designatedServer.getNumberOfOnlineRegions());
+        designatedServer.getOnlineRegionCount());
       LOG.debug("DesignatedServer Before:{} After:{}", regionsInDesignatedServer,
-        designatedServer.getNumberOfOnlineRegions());
-      assertEquals(regionsInExcludeServer, excludeServer.getNumberOfOnlineRegions());
+        designatedServer.getOnlineRegionCount());
+      assertEquals(regionsInExcludeServer, excludeServer.getOnlineRegionCount());
       LOG.debug("ExcludeServer Before:{} After:{}", regionsInExcludeServer,
-        excludeServer.getNumberOfOnlineRegions());
+        excludeServer.getOnlineRegionCount());
     }
   }
 
@@ -291,16 +291,16 @@ public class TestRegionMover1 {
     HRegionServer rsWithMeta = TEST_UTIL.getMiniHBaseCluster().getRegionServerThreads().stream()
       .map(t -> t.getRegionServer())
       .filter(rs -> rs.getRegions(TableName.META_TABLE_NAME).size() > 0).findFirst().get();
-    int onlineRegions = rsWithMeta.getNumberOfOnlineRegions();
+    int onlineRegions = rsWithMeta.getOnlineRegionCount();
     String rsName = rsWithMeta.getServerName().getAddress().toString();
     try (RegionMover rm =
       new RegionMoverBuilder(rsName, TEST_UTIL.getConfiguration()).ack(true).build()) {
       LOG.info("Unloading " + rsWithMeta.getServerName());
       rm.unload();
-      assertEquals(0, rsWithMeta.getNumberOfOnlineRegions());
+      assertEquals(0, rsWithMeta.getOnlineRegionCount());
       LOG.info("Loading " + rsWithMeta.getServerName());
       rm.load();
-      assertEquals(onlineRegions, rsWithMeta.getNumberOfOnlineRegions());
+      assertEquals(onlineRegions, rsWithMeta.getOnlineRegionCount());
     }
   }
 
@@ -321,7 +321,7 @@ public class TestRegionMover1 {
       new RegionMoverBuilder(rsName, conf).filename(filename).ack(true).build()) {
       LOG.info("Unloading " + rs.getServerName());
       rm.unload();
-      assertEquals(0, rs.getNumberOfOnlineRegions());
+      assertEquals(0, rs.getOnlineRegionCount());
     }
     String inexistRsName = "whatever:123";
     try (RegionMover rm =
@@ -337,7 +337,7 @@ public class TestRegionMover1 {
     MiniHBaseCluster cluster = TEST_UTIL.getHBaseCluster();
     HRegionServer excludeServer = cluster.getRegionServer(1);
     List<HRegion> regions = excludeServer.getRegions();
-    int regionsExcludeServer = excludeServer.getNumberOfOnlineRegions();
+    int regionsExcludeServer = excludeServer.getOnlineRegionCount();
     TEST_UTIL.getAdmin().decommissionRegionServers(
       Collections.singletonList(excludeServer.getServerName()), false);
 
@@ -357,17 +357,17 @@ public class TestRegionMover1 {
     try (RegionMover regionMover = rmBuilder.build()) {
       Assert.assertTrue(regionMover.unload());
       LOG.info("Unloading {}", hostname);
-      assertEquals(0, regionServer.getNumberOfOnlineRegions());
-      assertEquals(regionsExcludeServer, cluster.getRegionServer(1).getNumberOfOnlineRegions());
+      assertEquals(0, regionServer.getOnlineRegionCount());
+      assertEquals(regionsExcludeServer, cluster.getRegionServer(1).getOnlineRegionCount());
       LOG.info("Before:" + regionsExcludeServer + " After:" +
-        cluster.getRegionServer(1).getNumberOfOnlineRegions());
+        cluster.getRegionServer(1).getOnlineRegionCount());
       List<HRegion> regionList = cluster.getRegionServer(1).getRegions();
       int index = 0;
       for (HRegion hRegion : regionList) {
         Assert.assertEquals(hRegion, regions.get(index++));
       }
       Assert.assertEquals(targetServerRegions + sourceServerRegions,
-        cluster.getRegionServer(2).getNumberOfOnlineRegions());
+        cluster.getRegionServer(2).getOnlineRegionCount());
       Assert.assertTrue(regionMover.load());
     }
 
@@ -393,7 +393,7 @@ public class TestRegionMover1 {
     MiniHBaseCluster cluster = TEST_UTIL.getHBaseCluster();
     HRegionServer excludeServer = cluster.getRegionServer(0);
     List<HRegion> regions = excludeServer.getRegions();
-    int regionsExcludeServer = excludeServer.getNumberOfOnlineRegions();
+    int regionsExcludeServer = excludeServer.getOnlineRegionCount();
     TEST_UTIL.getAdmin().decommissionRegionServers(
       Collections.singletonList(excludeServer.getServerName()), false);
 
@@ -412,17 +412,17 @@ public class TestRegionMover1 {
     try (RegionMover regionMover = rmBuilder.build()) {
       Assert.assertTrue(regionMover.unload());
       LOG.info("Unloading {}", hostname);
-      assertEquals(0, sourceRegionServer.getNumberOfOnlineRegions());
-      assertEquals(regionsExcludeServer, cluster.getRegionServer(0).getNumberOfOnlineRegions());
+      assertEquals(0, sourceRegionServer.getOnlineRegionCount());
+      assertEquals(regionsExcludeServer, cluster.getRegionServer(0).getOnlineRegionCount());
       LOG.info("Before:" + regionsExcludeServer + " After:" +
-        cluster.getRegionServer(1).getNumberOfOnlineRegions());
+        cluster.getRegionServer(1).getOnlineRegionCount());
       List<HRegion> regionList = cluster.getRegionServer(0).getRegions();
       int index = 0;
       for (HRegion hRegion : regionList) {
         Assert.assertEquals(hRegion, regions.get(index++));
       }
       Assert.assertEquals(targetServerRegions + sourceServerRegions,
-        cluster.getRegionServer(2).getNumberOfOnlineRegions());
+        cluster.getRegionServer(2).getOnlineRegionCount());
       Assert.assertTrue(regionMover.load());
     }
 

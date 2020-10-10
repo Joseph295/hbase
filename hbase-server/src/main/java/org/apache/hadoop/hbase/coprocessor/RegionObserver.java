@@ -287,11 +287,10 @@ public interface RegionObserver {
    * @param c the environment provided by the region server
    * @param store the store being compacted
    * @param resultFile the new store file written out during compaction
-   * @param tracker used to track the life cycle of a compaction
    * @param request the requested compaction
    */
   default void postCompact(ObserverContext<RegionCoprocessorEnvironment> c, Store store,
-      StoreFile resultFile, CompactionLifeCycleTracker tracker, CompactionRequest request)
+      StoreFile resultFile, CompactionRequest request)
       throws IOException {}
 
   /**

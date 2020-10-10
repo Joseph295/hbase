@@ -86,7 +86,6 @@ import org.apache.hadoop.hbase.log.HBaseMarkers;
 import org.apache.hadoop.hbase.monitoring.MonitoredTask;
 import org.apache.hadoop.hbase.quotas.RegionSizeStore;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionContext;
-import org.apache.hadoop.hbase.regionserver.compactions.CompactionLifeCycleTracker;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionProgress;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
 import org.apache.hadoop.hbase.regionserver.compactions.DefaultCompactor;
@@ -1583,7 +1582,7 @@ public class HStore implements Store, HeapSize, StoreConfigInformation,
       assert newFile != null;
       HStoreFile sf = moveFileIntoPlace(newFile);
       if (this.getCoprocessorHost() != null) {
-        getCoprocessorHost().postCompact(this, sf, cr.getTracker(), cr, user);
+        getCoprocessorHost().postCompact(this, sf, cr, user);
       }
       assert sf != null;
       sfs.add(sf);
@@ -1825,7 +1824,7 @@ public class HStore implements Store, HeapSize, StoreConfigInformation,
         // Move the compaction into place.
         HStoreFile sf = moveFileIntoPlace(newFile);
         if (this.getCoprocessorHost() != null) {
-          this.getCoprocessorHost().postCompact(this, sf, null, null, null);
+          this.getCoprocessorHost().postCompact(this, sf, null, null);
         }
         replaceStoreFiles(filesToCompact, Collections.singletonList(sf));
         completeCompaction(filesToCompact);
@@ -1883,8 +1882,8 @@ public class HStore implements Store, HeapSize, StoreConfigInformation,
       return Optional.empty();
     }
     // Before we do compaction, try to get rid of unneeded files to simplify things.
-    removeUnneededFiles();
-
+    deleteExpiredStoreFiles();
+    // Here is DefaultStoreEngine if not configured.
     final CompactionContext compaction = storeEngine.createCompaction();
     CompactionRequestImpl request = null;
     this.lock.readLock().lock();
@@ -1894,7 +1893,7 @@ public class HStore implements Store, HeapSize, StoreConfigInformation,
         if (this.getCoprocessorHost() != null) {
           final List<HStoreFile> candidatesForCoproc = compaction.preSelect(this.filesCompacting);
           boolean override = getCoprocessorHost().preCompactSelection(this,
-              candidatesForCoproc, tracker, user);
+              candidatesForCoproc, user);
           if (override) {
             // Coprocessor is overriding normal file selection.
             compaction.forceSelect(new CompactionRequestImpl(candidatesForCoproc));
@@ -1923,7 +1922,7 @@ public class HStore implements Store, HeapSize, StoreConfigInformation,
         }
         if (this.getCoprocessorHost() != null) {
           this.getCoprocessorHost().postCompactSelection(
-              this, ImmutableList.copyOf(compaction.getRequest().getFiles()), tracker,
+              this, ImmutableList.copyOf(compaction.getRequest().getFiles()),
               compaction.getRequest(), user);
         }
         // Finally, we have the resulting files list. Check if we have any files at all.
@@ -1957,7 +1956,6 @@ public class HStore implements Store, HeapSize, StoreConfigInformation,
             this.getColumnFamilyName(), getRegionInfo().getRegionNameAsString());
         }
         request.setDescription(getRegionInfo().getRegionNameAsString(), getColumnFamilyName());
-        request.setTracker(tracker);
       }
     } finally {
       this.lock.readLock().unlock();
@@ -1984,7 +1982,7 @@ public class HStore implements Store, HeapSize, StoreConfigInformation,
     Collections.sort(filesCompacting, storeEngine.getStoreFileManager().getStoreFileComparator());
   }
 
-  private void removeUnneededFiles() throws IOException {
+  private void deleteExpiredStoreFiles() throws IOException {
     if (!conf.getBoolean("hbase.store.delete.expired.storefile", true)) {
       return;
     }

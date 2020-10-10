@@ -271,7 +271,7 @@ public class TestMultiParallel {
       // could ensure the master has re-assigned the regions on killed server
       // after writing successfully. It means the server we aborted is dead
       // and detected by matser
-      while (liveRS.getRegionServer().getNumberOfOnlineRegions() != 0) {
+      while (liveRS.getRegionServer().getOnlineRegionCount() != 0) {
         Thread.sleep(100);
       }
       // try putting more keys after the abort. same key/qual... just validating

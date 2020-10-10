@@ -110,7 +110,7 @@ public class TestRegionMover2 {
     admin.flush(tableName);
     HRegionServer regionServer = cluster.getRegionServer(0);
     String rsName = regionServer.getServerName().getAddress().toString();
-    int numRegions = regionServer.getNumberOfOnlineRegions();
+    int numRegions = regionServer.getOnlineRegionCount();
     List<HRegion> hRegions = regionServer.getRegions().stream()
       .filter(hRegion -> hRegion.getRegionInfo().getTable().equals(tableName))
       .collect(Collectors.toList());
@@ -120,13 +120,13 @@ public class TestRegionMover2 {
     try (RegionMover rm = rmBuilder.build()) {
       LOG.debug("Unloading {}", regionServer.getServerName());
       rm.unload();
-      Assert.assertEquals(0, regionServer.getNumberOfOnlineRegions());
+      Assert.assertEquals(0, regionServer.getOnlineRegionCount());
       LOG.debug("Successfully Unloaded, now Loading");
       admin.mergeRegionsAsync(new byte[][] { hRegions.get(0).getRegionInfo().getRegionName(),
         hRegions.get(1).getRegionInfo().getRegionName() }, true)
         .get(5, TimeUnit.SECONDS);
       Assert.assertTrue(rm.load());
-      Assert.assertEquals(numRegions - 2, regionServer.getNumberOfOnlineRegions());
+      Assert.assertEquals(numRegions - 2, regionServer.getOnlineRegionCount());
     }
   }
 
@@ -146,7 +146,7 @@ public class TestRegionMover2 {
     admin.compact(tableName);
     HRegionServer regionServer = cluster.getRegionServer(0);
     String rsName = regionServer.getServerName().getAddress().toString();
-    int numRegions = regionServer.getNumberOfOnlineRegions();
+    int numRegions = regionServer.getOnlineRegionCount();
     List<HRegion> hRegions = regionServer.getRegions().stream()
       .filter(hRegion -> hRegion.getRegionInfo().getTable().equals(tableName))
       .collect(Collectors.toList());
@@ -157,7 +157,7 @@ public class TestRegionMover2 {
     try (RegionMover rm = rmBuilder.build()) {
       LOG.debug("Unloading {}", regionServer.getServerName());
       rm.unload();
-      Assert.assertEquals(0, regionServer.getNumberOfOnlineRegions());
+      Assert.assertEquals(0, regionServer.getOnlineRegionCount());
       LOG.debug("Successfully Unloaded, now Loading");
       HRegion hRegion = hRegions.get(1);
       if (hRegion.getRegionInfo().getStartKey().length == 0) {
@@ -175,7 +175,7 @@ public class TestRegionMover2 {
       admin.splitRegionAsync(hRegion.getRegionInfo().getRegionName(), Bytes.toBytes(midKey))
         .get(5, TimeUnit.SECONDS);
       Assert.assertTrue(rm.load());
-      Assert.assertEquals(numRegions - 1, regionServer.getNumberOfOnlineRegions());
+      Assert.assertEquals(numRegions - 1, regionServer.getOnlineRegionCount());
     }
   }
 
@@ -194,7 +194,7 @@ public class TestRegionMover2 {
     admin.flush(tableName);
     HRegionServer regionServer = cluster.getRegionServer(0);
     String rsName = regionServer.getServerName().getAddress().toString();
-    int numRegions = regionServer.getNumberOfOnlineRegions();
+    int numRegions = regionServer.getOnlineRegionCount();
     List<HRegion> hRegions = regionServer.getRegions().stream()
       .filter(hRegion -> hRegion.getRegionInfo().getTable().equals(tableName))
       .collect(Collectors.toList());
@@ -204,7 +204,7 @@ public class TestRegionMover2 {
     try (RegionMover rm = rmBuilder.build()) {
       LOG.debug("Unloading {}", regionServer.getServerName());
       rm.unload();
-      Assert.assertEquals(0, regionServer.getNumberOfOnlineRegions());
+      Assert.assertEquals(0, regionServer.getOnlineRegionCount());
       LOG.debug("Successfully Unloaded, now Loading");
       admin.offline(hRegions.get(0).getRegionInfo().getRegionName());
       // loading regions will fail because of offline region

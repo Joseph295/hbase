@@ -211,7 +211,7 @@ public class TestRegionPlacement {
         }
       }
     } while (ServerName.isSameAddress(metaServer, serverToKill) || isNamespaceServer ||
-        TEST_UTIL.getHBaseCluster().getRegionServer(killIndex).getNumberOfOnlineRegions() == 0);
+        TEST_UTIL.getHBaseCluster().getRegionServer(killIndex).getOnlineRegionCount() == 0);
     LOG.debug("Stopping RS " + serverToKill);
     Map<RegionInfo, Pair<ServerName, ServerName>> regionsToVerify = new HashMap<>();
     // mark the regions to track

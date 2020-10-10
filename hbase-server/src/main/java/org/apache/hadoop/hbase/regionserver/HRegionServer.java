@@ -1132,7 +1132,7 @@ public class HRegionServer extends Thread implements
   }
 
   private boolean areAllUserRegionsOffline() {
-    if (getNumberOfOnlineRegions() > 2) return false;
+    if (getOnlineRegionCount() > 2) return false;
     boolean allUserRegionsOffline = true;
     for (Map.Entry<String, HRegion> e: this.onlineRegions.entrySet()) {
       if (!e.getValue().getRegionInfo().isMetaRegion()) {
@@ -1286,7 +1286,7 @@ public class HRegionServer extends Thread implements
     boolean interrupted = false;
     try {
       while (!onlineRegions.isEmpty()) {
-        int count = getNumberOfOnlineRegions();
+        int count = getOnlineRegionCount();
         // Only print a message if the count of regions has changed.
         if (count != lastCount) {
           // Log every second at most
@@ -2606,7 +2606,7 @@ public class HRegionServer extends Thread implements
     return this.onlineRegions;
   }
 
-  public int getNumberOfOnlineRegions() {
+  public int getOnlineRegionCount() {
     return this.onlineRegions.size();
   }
 

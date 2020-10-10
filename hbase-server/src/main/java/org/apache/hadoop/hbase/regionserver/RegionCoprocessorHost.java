@@ -561,12 +561,11 @@ public class RegionCoprocessorHost
    * the passed in <code>candidates</code>.
    * @param store The store where compaction is being requested
    * @param candidates The currently available store files
-   * @param tracker used to track the life cycle of a compaction
    * @param user the user
    * @throws IOException
    */
   public boolean preCompactSelection(final HStore store, final List<HStoreFile> candidates,
-      final CompactionLifeCycleTracker tracker, final User user) throws IOException {
+    final User user) throws IOException {
     if (coprocEnvironments.isEmpty()) {
       return false;
     }
@@ -574,7 +573,8 @@ public class RegionCoprocessorHost
     return execOperation(new RegionObserverOperationWithoutResult(user, bypassable) {
       @Override
       public void call(RegionObserver observer) throws IOException {
-        observer.preCompactSelection(this, store, candidates, tracker);
+        // xujunhong
+        // observer.preCompactSelection(this, store, candidates, tracker);
       }
     });
   }
@@ -584,12 +584,11 @@ public class RegionCoprocessorHost
    * candidates.
    * @param store The store where compaction is being requested
    * @param selected The store files selected to compact
-   * @param tracker used to track the life cycle of a compaction
    * @param request the compaction request
    * @param user the user
    */
   public void postCompactSelection(final HStore store, final List<HStoreFile> selected,
-      final CompactionLifeCycleTracker tracker, final CompactionRequest request,
+      final CompactionRequest request,
       final User user) throws IOException {
     if (coprocEnvironments.isEmpty()) {
       return;
@@ -597,7 +596,8 @@ public class RegionCoprocessorHost
     execOperation(new RegionObserverOperationWithoutResult(user) {
       @Override
       public void call(RegionObserver observer) throws IOException {
-        observer.postCompactSelection(this, store, selected, tracker, request);
+        // xujunhong
+        // observer.postCompactSelection(this, store, selected, tracker, request);
       }
     });
   }
@@ -657,18 +657,17 @@ public class RegionCoprocessorHost
    * Called after the store compaction has completed.
    * @param store the store being compacted
    * @param resultFile the new store file written during compaction
-   * @param tracker used to track the life cycle of a compaction
    * @param request the compaction request
    * @param user the user
    * @throws IOException
    */
   public void postCompact(final HStore store, final HStoreFile resultFile,
-      final CompactionLifeCycleTracker tracker, final CompactionRequest request, final User user)
+      final CompactionRequest request, final User user)
       throws IOException {
     execOperation(coprocEnvironments.isEmpty()? null: new RegionObserverOperationWithoutResult(user) {
       @Override
       public void call(RegionObserver observer) throws IOException {
-        observer.postCompact(this, store, resultFile, tracker, request);
+        observer.postCompact(this, store, resultFile, request);
       }
     });
   }

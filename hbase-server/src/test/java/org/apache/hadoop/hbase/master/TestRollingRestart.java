@@ -244,10 +244,10 @@ public class TestRollingRestart {
   private int getNumberOfOnlineRegions(MiniHBaseCluster cluster) {
     int numFound = 0;
     for (RegionServerThread rst : cluster.getLiveRegionServerThreads()) {
-      numFound += rst.getRegionServer().getNumberOfOnlineRegions();
+      numFound += rst.getRegionServer().getOnlineRegionCount();
     }
     for (MasterThread mt : cluster.getMasterThreads()) {
-      numFound += mt.getMaster().getNumberOfOnlineRegions();
+      numFound += mt.getMaster().getOnlineRegionCount();
     }
     return numFound;
   }

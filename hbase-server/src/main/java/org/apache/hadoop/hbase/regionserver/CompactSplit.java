@@ -21,27 +21,19 @@ package org.apache.hadoop.hbase.regionserver;
 import static org.apache.hadoop.hbase.regionserver.Store.NO_PRIORITY;
 import static org.apache.hadoop.hbase.regionserver.Store.PRIORITY_USER;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.Optional;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.IntSupplier;
+
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.conf.ConfigurationManager;
 import org.apache.hadoop.hbase.conf.PropagatingConfigurationObserver;
 import org.apache.hadoop.hbase.quotas.RegionServerSpaceQuotaManager;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionContext;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionLifeCycleTracker;
-import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequester;
 import org.apache.hadoop.hbase.regionserver.throttle.CompactionThroughputControllerFactory;
 import org.apache.hadoop.hbase.regionserver.throttle.ThroughputController;
@@ -54,7 +46,6 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.yetus.audience.InterfaceAudience;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.hbase.thirdparty.com.google.common.annotations.VisibleForTesting;
 import org.apache.hbase.thirdparty.com.google.common.base.Preconditions;
 import org.apache.hbase.thirdparty.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -85,43 +76,32 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
   public static final String HBASE_REGION_SERVER_ENABLE_COMPACTION =
       "hbase.regionserver.compaction.enabled";
 
-  public final HRegionServer server;
+  public final HRegionServer regionServer;
   public final Configuration conf;
   public volatile ThreadPoolExecutor longCompactions;
   public volatile ThreadPoolExecutor shortCompactions;
   public volatile ThreadPoolExecutor splits;
-
   public volatile ThroughputController compactionThroughputController;
-
   public volatile boolean compactionsEnabled;
-  /**
-   * Splitting should not take place if the total number of regions exceed this.
-   * This is not a hard limit to the number of regions but it is a guideline to
-   * stop splitting after number of online regions is greater than this.
-   */
-  private int regionSplitLimit;
+  private int regionWillNotSplitAbove;
 
-  CompactSplit(HRegionServer server) {
-    this.server = server;
-    this.conf = server.getConfiguration();
+  CompactSplit(HRegionServer regionServer) {
+    this.regionServer = regionServer;
+    this.conf = regionServer.getConfiguration();
     this.compactionsEnabled = this.conf.getBoolean(HBASE_REGION_SERVER_ENABLE_COMPACTION,true);
     createCompactionExecutors();
     createSplitExcecutors();
-
-    // compaction throughput controller
-    this.compactionThroughputController =
-        CompactionThroughputControllerFactory.create(server, conf);
+    this.compactionThroughputController = CompactionThroughputControllerFactory.create(regionServer, conf);
   }
 
   private void createSplitExcecutors() {
     final String splitThreadName = Thread.currentThread().getName();
-    int splitThreads = conf.getInt(SPLIT_THREADS, SPLIT_THREADS_DEFAULT);
-    this.splits = (ThreadPoolExecutor) Executors.newFixedThreadPool(splitThreads,
+    this.splits = (ThreadPoolExecutor) Executors.newFixedThreadPool(conf.getInt(SPLIT_THREADS, SPLIT_THREADS_DEFAULT),
       new ThreadFactoryBuilder().setNameFormat(splitThreadName + "-splits-%d").setDaemon(true).build());
   }
 
   private void createCompactionExecutors() {
-    this.regionSplitLimit =
+    this.regionWillNotSplitAbove =
         conf.getInt(REGION_SERVER_REGION_SPLIT_LIMIT, DEFAULT_REGION_SERVER_REGION_SPLIT_LIMIT);
 
     int largeThreads =
@@ -147,11 +127,11 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
 
   public synchronized boolean requestSplit(final Region r) {
     // don't split regions that are blocking
-    HRegion hr = (HRegion)r;
+    HRegion hregion = (HRegion)r;
     try {
-      if ((regionSplitLimit > server.getNumberOfOnlineRegions())
-        && hr.getCompactPriority() >= PRIORITY_USER) {
-        byte[] midKey = hr.checkSplit().orElse(null);
+      if ((regionWillNotSplitAbove > regionServer.getOnlineRegionCount())
+        && hregion.getCompactPriority() >= PRIORITY_USER) {
+        byte[] midKey = hregion.checkSplit().orElse(null);
         if (midKey != null) {
           requestSplit(r, midKey);
           return true;
@@ -159,8 +139,8 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
       }
     } catch (IndexOutOfBoundsException e) {
       // We get this sometimes. Not sure why. Catch and return false; no split request.
-      LOG.warn("Catching out-of-bounds; region={}, policy={}", hr == null? null: hr.getRegionInfo(),
-        hr == null? "null": hr.getCompactPriority(), e);
+      LOG.warn("Catching out-of-bounds; region={}, policy={}", hregion == null? null: hregion.getRegionInfo(),
+        hregion == null? "null": hregion.getCompactPriority(), e);
     }
     return false;
   }
@@ -172,19 +152,19 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
   /*
    * The User parameter allows the split thread to assume the correct user identity
    */
-  public synchronized void requestSplit(final Region r, byte[] midKey, User user) {
+  public synchronized void requestSplit(final Region region, byte[] midKey, User user) {
     if (midKey == null) {
-      LOG.debug("Region " + r.getRegionInfo().getRegionNameAsString() +
+      LOG.debug("Region " + region.getRegionInfo().getRegionNameAsString() +
         " not splittable because midkey=null");
       return;
     }
     try {
-      this.splits.execute(new SplitRequest(r, midKey, this.server, user));
+      this.splits.execute(new SplitRequest(region, midKey, this.regionServer, user));
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Splitting " + r + ", " + this);
+        LOG.debug("Splitting " + region + ", " + this);
       }
     } catch (RejectedExecutionException ree) {
-      LOG.info("Could not execute split for " + r, ree);
+      LOG.info("Could not execute split for " + region, ree);
     }
   }
 
@@ -210,18 +190,15 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
   }
 
   @Override
-  public void switchCompaction(boolean onOrOff) {
-    if (onOrOff) {
-      // re-create executor pool if compactions are disabled.
-      if (!compactionsEnabled) {
-        LOG.info("Re-Initializing compactions because user switched on compactions");
-        reInitializeCompactionsExecutors();
-      }
+  public void switchCompaction(boolean compactionSwitch) {
+    if (compactionSwitch && !compactionsEnabled) {
+      LOG.info("Re-Initializing compactions because user switched on compactions");
+      reInitializeCompactionsExecutors();
     } else {
       LOG.info("Interrupting running compactions because user switched off compactions");
       interrupt();
     }
-    this.compactionsEnabled = onOrOff;
+    this.compactionsEnabled = compactionSwitch;
     this.conf.set(HBASE_REGION_SERVER_ENABLE_COMPACTION,String.valueOf(compactionsEnabled));
   }
 
@@ -236,12 +213,12 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
 
   private void requestCompactionInternal(HRegion region, HStore store, String why, int priority,
       boolean selectNow, CompactionLifeCycleTracker tracker, User user) throws IOException {
-    if (this.server.isStopped() || (region.getTableDescriptor() != null &&
+    if (this.regionServer.isStopped() || (region.getTableDescriptor() != null &&
         !region.getTableDescriptor().isCompactionEnabled())) {
       return;
     }
     RegionServerSpaceQuotaManager spaceQuotaManager =
-        this.server.getRegionServerSpaceQuotaManager();
+        this.regionServer.getRegionServerSpaceQuotaManager();
 
     if (user != null && !Superusers.isSuperUser(user) && spaceQuotaManager != null
         && spaceQuotaManager.areCompactionsDisabled(region.getTableDescriptor().getTableName())) {
@@ -392,7 +369,7 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
           selected = selectCompaction(this.region, this.store, queuedPriority, user);
         } catch (IOException ex) {
           LOG.error("Compaction selection failed " + this, ex);
-          server.checkFileSystem();
+          regionServer.checkFileSystem();
           region.decrementCompactionsQueuedCount();
           return;
         }
@@ -445,7 +422,7 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
             ex instanceof RemoteException ? ((RemoteException) ex).unwrapRemoteException() : ex;
         LOG.error("Compaction failed " + this, remoteEx);
         region.reportCompactionRequestFailure();
-        server.checkFileSystem();
+        regionServer.checkFileSystem();
       } finally {
         region.decrementCompactionsQueuedCount();
         LOG.debug("Status {}", CompactSplit.this);
@@ -454,8 +431,8 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
 
     @Override
     public void run() {
-      Preconditions.checkNotNull(server);
-      if (server.isStopped() || (region.getTableDescriptor() != null &&
+      Preconditions.checkNotNull(regionServer);
+      if (regionServer.isStopped() || (region.getTableDescriptor() != null &&
         !region.getTableDescriptor().isCompactionEnabled())) {
         region.decrementCompactionsQueuedCount();
         return;

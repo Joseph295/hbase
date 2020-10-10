@@ -229,8 +229,7 @@ public class SimpleRegionObserver implements RegionCoprocessor, RegionObserver {
 
   @Override
   public void postCompact(ObserverContext<RegionCoprocessorEnvironment> c, Store store,
-      StoreFile resultFile, CompactionLifeCycleTracker tracker,
-      CompactionRequest request) throws IOException {
+      StoreFile resultFile, CompactionRequest request) throws IOException {
     ctPostCompact.incrementAndGet();
   }
 

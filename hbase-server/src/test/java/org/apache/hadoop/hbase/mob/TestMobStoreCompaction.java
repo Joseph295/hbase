@@ -185,8 +185,7 @@ public class TestMobStoreCompaction {
       // Force major compaction
       store.triggerMajorCompaction();
       Optional<CompactionContext> context =
-          store.requestCompaction(HStore.PRIORITY_USER, CompactionLifeCycleTracker.DUMMY,
-            User.getCurrent());
+          store.requestCompaction(HStore.PRIORITY_USER, User.getCurrent());
       if (!context.isPresent()) {
         continue;
       }

@@ -102,7 +102,8 @@ public class TestLoadAndSwitchEncodeOnDisk extends TestMiniClusterLoadSequential
     // Wait until compaction completes
     Threads.sleepWithoutInterrupt(5000);
     HRegionServer rs = TEST_UTIL.getMiniHBaseCluster().getRegionServer(0);
-    while (rs.compactSplit.getCompactionQueueSize() > 0) {
+    while (rs.compactSplit.longCompactionThreadPool.getQueue().size()
+      + rs.compactSplit.shortCompactionThreadPool.getQueue().size() > 0) {
       Threads.sleep(50);
     }
 

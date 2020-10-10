@@ -1536,12 +1536,12 @@ public class HRegionServer extends Thread implements
               s.triggerMajorCompaction();
               if (majorCompactPriority == DEFAULT_PRIORITY ||
                   majorCompactPriority > hr.getCompactPriority()) {
-                this.instance.compactSplit.requestCompaction(hr, s,
+                this.instance.compactSplit.requestStoreCompaction(hr, s,
                     getName() + " requests major compaction; use default priority",
                     Store.NO_PRIORITY,
                 CompactionLifeCycleTracker.DUMMY, null);
               } else {
-                this.instance.compactSplit.requestCompaction(hr, s,
+                this.instance.compactSplit.requestStoreCompaction(hr, s,
                     getName() + " requests major compaction; use configured priority",
                     this.majorCompactPriority, CompactionLifeCycleTracker.DUMMY, null);
               }

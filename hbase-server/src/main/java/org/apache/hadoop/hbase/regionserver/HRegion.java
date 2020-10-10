@@ -5562,7 +5562,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
         }
         if (this.rsServices != null && store.needsCompaction()) {
           this.rsServices.getCompactionRequestor()
-              .requestCompaction(this, store, "load recovered hfiles request compaction",
+              .requestStoreCompaction(this, store, "load recovered hfiles request compaction",
                   Store.PRIORITY_USER + 1, CompactionLifeCycleTracker.DUMMY, null);
         }
       }
@@ -8951,7 +8951,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
     if (major) {
       stores.values().forEach(HStore::triggerMajorCompaction);
     }
-    rsServices.getCompactionRequestor().requestCompaction(this, why, priority, tracker,
+    rsServices.getCompactionRequestor().requestRegionCompaction(this, why, priority, tracker,
         RpcServer.getRequestUser().orElse(null));
   }
 
@@ -8966,7 +8966,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
     if (major) {
       store.triggerMajorCompaction();
     }
-    rsServices.getCompactionRequestor().requestCompaction(this, store, why, priority, tracker,
+    rsServices.getCompactionRequestor().requestStoreCompaction(this, store, why, priority, tracker,
         RpcServer.getRequestUser().orElse(null));
   }
 

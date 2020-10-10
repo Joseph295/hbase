@@ -210,7 +210,7 @@ public class TestCoprocessorInterface {
     }
     @Override
     public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,
-        Store store, StoreFile resultFile, CompactionLifeCycleTracker tracker,
+        Store store, StoreFile resultFile,
         CompactionRequest request) {
       postCompactCalled = true;
     }

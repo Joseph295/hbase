@@ -240,11 +240,13 @@ public class TestChangingEncoding {
     final long maxWaitime = System.currentTimeMillis() + 500;
     boolean cont;
     do {
-      cont = rs.compactSplit.getCompactionQueueSize() == 0;
+      cont = (rs.compactSplit.longCompactionThreadPool.getQueue().size()
+        + rs.compactSplit.shortCompactionThreadPool.getQueue().size() == 0);
       Threads.sleep(1);
     } while (cont && System.currentTimeMillis() < maxWaitime);
 
-    while (rs.compactSplit.getCompactionQueueSize() > 0) {
+    while (rs.compactSplit.longCompactionThreadPool.getQueue().size()
+      + rs.compactSplit.shortCompactionThreadPool.getQueue().size() > 0) {
       Threads.sleep(1);
     }
     LOG.debug("Compaction queue size reached 0, continuing");

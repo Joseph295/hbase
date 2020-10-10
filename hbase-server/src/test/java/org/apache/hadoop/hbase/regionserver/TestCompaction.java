@@ -391,7 +391,7 @@ public class TestCompaction {
 
     CountDownLatch latch = new CountDownLatch(1);
     Tracker tracker = new Tracker(latch);
-    thread.requestCompaction(r, store, "test custom comapction", PRIORITY_USER, tracker,
+    thread.requestStoreCompaction(r, store, "test custom comapction", PRIORITY_USER, tracker,
       null);
     // wait for the latch to complete.
     latch.await();
@@ -425,7 +425,7 @@ public class TestCompaction {
 
     CountDownLatch latch = new CountDownLatch(1);
     Tracker tracker = new Tracker(latch);
-    thread.requestCompaction(mockRegion, store, "test custom comapction", PRIORITY_USER,
+    thread.requestStoreCompaction(mockRegion, store, "test custom comapction", PRIORITY_USER,
       tracker, null);
     // wait for the latch to complete.
     latch.await(120, TimeUnit.SECONDS);
@@ -459,7 +459,7 @@ public class TestCompaction {
       createStoreFile(r);
     }
     thread.switchCompaction(false);
-    thread.requestCompaction(r, store, "test", Store.PRIORITY_USER,
+    thread.requestStoreCompaction(r, store, "test", Store.PRIORITY_USER,
       CompactionLifeCycleTracker.DUMMY, null);
     assertFalse(thread.isCompactionEnabled);
     int longCompactions = thread.longCompactionThreadPool.getActiveCount();
@@ -472,7 +472,7 @@ public class TestCompaction {
     assertEquals(0, thread.longCompactionThreadPool.getCompletedTaskCount() +
         thread.shortCompactionThreadPool.getCompletedTaskCount());
     // Request a compaction and make sure it is submitted successfully.
-    thread.requestCompaction(r, store, "test", Store.PRIORITY_USER,
+    thread.requestStoreCompaction(r, store, "test", Store.PRIORITY_USER,
         CompactionLifeCycleTracker.DUMMY, null);
     // Wait until the compaction finishes.
     Waiter.waitFor(UTIL.getConfiguration(), 5000,
@@ -511,7 +511,7 @@ public class TestCompaction {
     HStore s = r.getStore(COLUMN_FAMILY);
     int initialFiles = s.getStorefilesCount();
 
-    thread.requestCompaction(r, store, "test custom comapction", PRIORITY_USER,
+    thread.requestStoreCompaction(r, store, "test custom comapction", PRIORITY_USER,
         CompactionLifeCycleTracker.DUMMY, null);
 
     Thread.sleep(3000);
@@ -544,7 +544,7 @@ public class TestCompaction {
       createStoreFile(r, store.getColumnFamilyName());
       createStoreFile(r, store.getColumnFamilyName());
       createStoreFile(r, store.getColumnFamilyName());
-      thread.requestCompaction(r, store, "test mulitple custom comapctions", PRIORITY_USER,
+      thread.requestStoreCompaction(r, store, "test mulitple custom comapctions", PRIORITY_USER,
         tracker, null);
     }
     // wait for the latch to complete.

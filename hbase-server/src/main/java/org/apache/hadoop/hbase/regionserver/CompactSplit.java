@@ -184,7 +184,7 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
   @Override
   public synchronized void requestStoreCompaction(HRegion region, HStore store, String why, int priority,
       CompactionLifeCycleTracker tracker, User user) throws IOException {
-    requestCompactionInternal(region, store, why, priority, true, tracker, user);
+    requestStoreCompactionInternal(region, store, why, priority, true, tracker, user);
   }
 
   @Override
@@ -204,12 +204,12 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
       boolean selectNow, CompactionLifeCycleTracker tracker, User user) throws IOException {
     // request compaction on all stores
     for (HStore store : region.stores.values()) {
-      requestCompactionInternal(region, store, why, priority, selectNow, tracker,
+      requestStoreCompactionInternal(region, store, why, priority, selectNow, tracker,
         user);
     }
   }
 
-  private void requestCompactionInternal(HRegion region, HStore store, String why, int priority,
+  private void requestStoreCompactionInternal(HRegion region, HStore store, String why, int priority,
       boolean selectNow, CompactionLifeCycleTracker tracker, User user) throws IOException {
     if (this.regionServer.isStopped() || (region.getTableDescriptor() != null &&
         !region.getTableDescriptor().isCompactionEnabled())) {
@@ -270,7 +270,7 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
 
   public synchronized void requestSystemCompaction(HRegion region, HStore store, String why)
       throws IOException {
-    requestCompactionInternal(region, store, why, NO_PRIORITY, false,
+    requestStoreCompactionInternal(region, store, why, NO_PRIORITY, false,
       CompactionLifeCycleTracker.DUMMY, null);
   }
 

@@ -1695,14 +1695,14 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
     try {
       checkOpen();
       requestCount.increment();
-      boolean prevState = regionServer.compactSplitThread.compactionsEnabled;
+      boolean prevState = regionServer.compactSplit.compactionsEnabled;
       CompactionSwitchResponse response =
           CompactionSwitchResponse.newBuilder().setPrevState(prevState).build();
       if (prevState == request.getEnabled()) {
         // passed in requested state is same as current state. No action required
         return response;
       }
-      regionServer.compactSplitThread.switchCompaction(request.getEnabled());
+      regionServer.compactSplit.switchCompaction(request.getEnabled());
       return response;
     } catch (IOException ie) {
       throw new ServiceException(ie);
@@ -1745,7 +1745,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
         }
         boolean compactionNeeded = flushResult.isCompactionNeeded();
         if (compactionNeeded) {
-          regionServer.compactSplitThread.requestSystemCompaction(region,
+          regionServer.compactSplit.requestSystemCompaction(region,
             "Compaction through user triggered flush");
         }
         builder.setFlushed(flushResult.isFlushSucceeded());
@@ -1840,10 +1840,10 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
           LOG.debug("clear " + queueName + " compaction queue");
           switch (queueName) {
             case "long":
-              regionServer.compactSplitThread.longCompactions.getQueue().clear();
+              regionServer.compactSplit.longCompactions.getQueue().clear();
               break;
             case "short":
-              regionServer.compactSplitThread.shortCompactions.getQueue().clear();
+              regionServer.compactSplit.shortCompactions.getQueue().clear();
               break;
             default:
               LOG.warn("Unknown queue name " + queueName);

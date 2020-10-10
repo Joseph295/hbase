@@ -106,11 +106,11 @@ public class TestRegionServerOnlineConfigChange {
    */
   @Test
   public void testNumCompactionThreadsOnlineChange() throws IOException {
-    assertTrue(rs1.compactSplitThread != null);
+    assertTrue(rs1.compactSplit != null);
     int newNumSmallThreads =
-            rs1.compactSplitThread.shortCompactions.getCorePoolSize() + 1;
+            rs1.compactSplit.shortCompactions.getCorePoolSize() + 1;
     int newNumLargeThreads =
-            rs1.compactSplitThread.longCompactions.getCorePoolSize() + 1;
+            rs1.compactSplit.longCompactions.getCorePoolSize() + 1;
 
     conf.setInt("hbase.regionserver.thread.compaction.small",
             newNumSmallThreads);
@@ -119,9 +119,9 @@ public class TestRegionServerOnlineConfigChange {
     rs1.getConfigurationManager().notifyAllObservers(conf);
 
     assertEquals(newNumSmallThreads,
-                  rs1.compactSplitThread.shortCompactions.getCorePoolSize());
+                  rs1.compactSplit.shortCompactions.getCorePoolSize());
     assertEquals(newNumLargeThreads,
-                  rs1.compactSplitThread.longCompactions.getCorePoolSize());
+                  rs1.compactSplit.longCompactions.getCorePoolSize());
   }
 
   /**

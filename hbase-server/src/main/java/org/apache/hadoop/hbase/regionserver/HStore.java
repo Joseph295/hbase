@@ -2643,27 +2643,7 @@ public class HStore implements Store, HeapSize, StoreConfigInformation,
    */
   @Override
   public void onConfigurationChange(Configuration conf) {
-    this.conf = new CompoundConfiguration()
-            .add(conf)
-            .addBytesMap(family.getValues());
-    this.storeEngine.compactionPolicy.setConf(conf);
-    this.offPeakHours = OffPeakHours.getInstance(conf);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void registerChildren(ConfigurationManager manager) {
-    // No children to register
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void deregisterChildren(ConfigurationManager manager) {
-    // No children to deregister
+    // xujunhong
   }
 
   @Override

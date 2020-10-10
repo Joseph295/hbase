@@ -120,39 +120,39 @@ public class TestCompactSplitThread {
       HRegionServer regionServer = TEST_UTIL.getRSForFirstRegionInTable(tableName);
 
       // check initial configuration of thread pool sizes
-      assertEquals(3, regionServer.compactSplitThread.longCompactions.getCorePoolSize());
-      assertEquals(4, regionServer.compactSplitThread.shortCompactions.getCorePoolSize());
-      assertEquals(5, regionServer.compactSplitThread.splits.getCorePoolSize());
+      assertEquals(3, regionServer.compactSplit.longCompactions.getCorePoolSize());
+      assertEquals(4, regionServer.compactSplit.shortCompactions.getCorePoolSize());
+      assertEquals(5, regionServer.compactSplit.splits.getCorePoolSize());
 
       // change bigger configurations and do online update
       conf.setInt(CompactSplit.LARGE_COMPACTION_THREADS, 4);
       conf.setInt(CompactSplit.SMALL_COMPACTION_THREADS, 5);
       conf.setInt(CompactSplit.SPLIT_THREADS, 6);
       try {
-        regionServer.compactSplitThread.onConfigurationChange(conf);
+        regionServer.compactSplit.onConfigurationChange(conf);
       } catch (IllegalArgumentException iae) {
         Assert.fail("Update bigger configuration failed!");
       }
 
       // check again after online update
-      assertEquals(4, regionServer.compactSplitThread.longCompactions.getCorePoolSize());
-      assertEquals(5, regionServer.compactSplitThread.shortCompactions.getCorePoolSize());
-      assertEquals(6, regionServer.compactSplitThread.splits.getCorePoolSize());
+      assertEquals(4, regionServer.compactSplit.longCompactions.getCorePoolSize());
+      assertEquals(5, regionServer.compactSplit.shortCompactions.getCorePoolSize());
+      assertEquals(6, regionServer.compactSplit.splits.getCorePoolSize());
 
       // change smaller configurations and do online update
       conf.setInt(CompactSplit.LARGE_COMPACTION_THREADS, 2);
       conf.setInt(CompactSplit.SMALL_COMPACTION_THREADS, 3);
       conf.setInt(CompactSplit.SPLIT_THREADS, 4);
       try {
-        regionServer.compactSplitThread.onConfigurationChange(conf);
+        regionServer.compactSplit.onConfigurationChange(conf);
       } catch (IllegalArgumentException iae) {
         Assert.fail("Update smaller configuration failed!");
       }
 
       // check again after online update
-      assertEquals(2, regionServer.compactSplitThread.longCompactions.getCorePoolSize());
-      assertEquals(3, regionServer.compactSplitThread.shortCompactions.getCorePoolSize());
-      assertEquals(4, regionServer.compactSplitThread.splits.getCorePoolSize());
+      assertEquals(2, regionServer.compactSplit.longCompactions.getCorePoolSize());
+      assertEquals(3, regionServer.compactSplit.shortCompactions.getCorePoolSize());
+      assertEquals(4, regionServer.compactSplit.splits.getCorePoolSize());
     } finally {
       conn.close();
     }

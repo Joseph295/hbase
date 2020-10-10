@@ -6598,14 +6598,14 @@ public class TestHRegion {
       @Override
       public void run() {
         try {
-          region.lock.writeLock().lock();
+          region.closeLockGuard.writeLock().lock();
           stopped.set(false);
           while (!stopped.get()) {
             Thread.sleep(100);
           }
         } catch (InterruptedException ie) {
         } finally {
-          region.lock.writeLock().unlock();
+          region.closeLockGuard.writeLock().unlock();
         }
       }
     });

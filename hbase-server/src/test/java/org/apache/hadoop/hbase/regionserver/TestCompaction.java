@@ -380,7 +380,7 @@ public class TestCompaction {
     HRegionServer mockServer = Mockito.mock(HRegionServer.class);
     Mockito.when(mockServer.getConfiguration()).thenReturn(r.getBaseConf());
     CompactSplit thread = new CompactSplit(mockServer);
-    Mockito.when(mockServer.getCompactSplitThread()).thenReturn(thread);
+    Mockito.when(mockServer.getCompactSplit()).thenReturn(thread);
 
     // setup a region/store with some files
     HStore store = r.getStore(COLUMN_FAMILY);
@@ -405,7 +405,7 @@ public class TestCompaction {
     HRegionServer mockServer = Mockito.mock(HRegionServer.class);
     Mockito.when(mockServer.getConfiguration()).thenReturn(r.getBaseConf());
     CompactSplit thread = new CompactSplit(mockServer);
-    Mockito.when(mockServer.getCompactSplitThread()).thenReturn(thread);
+    Mockito.when(mockServer.getCompactSplit()).thenReturn(thread);
 
     // setup a region/store with some files
     HStore store = r.getStore(COLUMN_FAMILY);
@@ -451,7 +451,7 @@ public class TestCompaction {
     HRegionServer mockServer = Mockito.mock(HRegionServer.class);
     Mockito.when(mockServer.getConfiguration()).thenReturn(r.getBaseConf());
     final CompactSplit thread = new CompactSplit(mockServer);
-    Mockito.when(mockServer.getCompactSplitThread()).thenReturn(thread);
+    Mockito.when(mockServer.getCompactSplit()).thenReturn(thread);
     // setup a region/store with some files
     HStore store = r.getStore(COLUMN_FAMILY);
     createStoreFile(r);
@@ -491,7 +491,7 @@ public class TestCompaction {
     Mockito.when(mockServer.getConfiguration()).thenReturn(r.getBaseConf());
     CompactSplit thread = new CompactSplit(mockServer);
 
-    Mockito.when(mockServer.getCompactSplitThread()).thenReturn(thread);
+    Mockito.when(mockServer.getCompactSplit()).thenReturn(thread);
 
     // setup a region/store with some files
     HStore store = r.getStore(COLUMN_FAMILY);
@@ -532,7 +532,7 @@ public class TestCompaction {
     HRegionServer mockServer = Mockito.mock(HRegionServer.class);
     Mockito.when(mockServer.getConfiguration()).thenReturn(r.getBaseConf());
     CompactSplit thread = new CompactSplit(mockServer);
-    Mockito.when(mockServer.getCompactSplitThread()).thenReturn(thread);
+    Mockito.when(mockServer.getCompactSplit()).thenReturn(thread);
 
     // setup a region/store with some files
     int numStores = r.getStores().size();
@@ -716,7 +716,7 @@ public class TestCompaction {
     when(mockServer.getConfiguration()).thenReturn(conf);
     when(mockServer.getChoreService()).thenReturn(new ChoreService("test"));
     CompactSplit cst = new CompactSplit(mockServer);
-    when(mockServer.getCompactSplitThread()).thenReturn(cst);
+    when(mockServer.getCompactSplit()).thenReturn(cst);
     //prevent large compaction thread pool stealing job from small compaction queue.
     cst.longCompactions.shutdown();
     // Set up the region mock that redirects compactions.

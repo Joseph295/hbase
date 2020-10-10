@@ -695,7 +695,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
   private long flushPerChanges;
   private long blockingMemStoreSize;
   // Used to guard closes
-  final ReentrantReadWriteLock lock;
+  final ReentrantReadWriteLock closeLockGuard;
 
   // Stop updates lock
   private final ReentrantReadWriteLock updatesLock = new ReentrantReadWriteLock();
@@ -787,7 +787,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
       conf.getBoolean(USE_META_CELL_COMPARATOR, DEFAULT_USE_META_CELL_COMPARATOR) ?
         CellComparatorImpl.META_COMPARATOR :
         CellComparatorImpl.COMPARATOR;
-    this.lock = new ReentrantReadWriteLock(conf.getBoolean(FAIR_REENTRANT_CLOSE_LOCK,
+    this.closeLockGuard = new ReentrantReadWriteLock(conf.getBoolean(FAIR_REENTRANT_CLOSE_LOCK,
         DEFAULT_FAIR_REENTRANT_CLOSE_LOCK));
     this.flushCheckInterval = conf.getInt(MEMSTORE_PERIODIC_FLUSH_INTERVAL,
         DEFAULT_CACHE_FLUSH_INTERVAL);
@@ -1677,10 +1677,10 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
     if (timeoutForWriteLock == null
         || timeoutForWriteLock == Long.MAX_VALUE) {
       // block waiting for the lock for closing
-      lock.writeLock().lock(); // FindBugs: Complains UL_UNRELEASED_LOCK_EXCEPTION_PATH but seems fine
+      closeLockGuard.writeLock().lock(); // FindBugs: Complains UL_UNRELEASED_LOCK_EXCEPTION_PATH but seems fine
     } else {
       try {
-        boolean succeed = lock.writeLock().tryLock(timeoutForWriteLock, TimeUnit.SECONDS);
+        boolean succeed = closeLockGuard.writeLock().tryLock(timeoutForWriteLock, TimeUnit.SECONDS);
         if (!succeed) {
           throw new IOException("Failed to get write lock when closing region");
         }
@@ -1817,7 +1817,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
       LOG.info("Closed {}", this);
       return result;
     } finally {
-      lock.writeLock().unlock();
+      closeLockGuard.writeLock().unlock();
     }
   }
 
@@ -2438,7 +2438,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
     status.enableStatusJournal(false);
     status.setStatus("Acquiring readlock on region");
     // block waiting for the lock for flushing cache
-    lock.readLock().lock();
+    closeLockGuard.readLock().lock();
     try {
       if (this.closed.get()) {
         String msg = "Skipping flush on " + this + " because closed";
@@ -2505,7 +2505,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
         }
       }
     } finally {
-      lock.readLock().unlock();
+      closeLockGuard.readLock().unlock();
       LOG.debug("Flush status journal for {}:\n{}", this.getRegionInfo().getEncodedName(),
         status.prettyPrintJournal());
       status.cleanup();
@@ -6231,7 +6231,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
 
   @VisibleForTesting
   public int getReadLockCount() {
-    return lock.getReadLockCount();
+    return closeLockGuard.getReadLockCount();
   }
 
   public ConcurrentHashMap<HashedBytes, RowLockContext> getLockedRows() {
@@ -8640,9 +8640,9 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
     if (this.closing.get()) {
       throw new NotServingRegionException(getRegionInfo().getRegionNameAsString() + " is closing");
     }
-    lock(lock.readLock());
+    lock(closeLockGuard.readLock());
     if (this.closed.get()) {
-      lock.readLock().unlock();
+      closeLockGuard.readLock().unlock();
       throw new NotServingRegionException(getRegionInfo().getRegionNameAsString() + " is closed");
     }
     // The unit for snapshot is a region. So, all stores for this region must be
@@ -8655,7 +8655,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
         coprocessorHost.postStartRegionOperation(op);
       }
     } catch (Exception e) {
-      lock.readLock().unlock();
+      closeLockGuard.readLock().unlock();
       throw new IOException(e);
     }
   }
@@ -8670,7 +8670,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
     if (operation == Operation.SNAPSHOT) {
       stores.values().forEach(HStore::postSnapshotOperation);
     }
-    lock.readLock().unlock();
+    closeLockGuard.readLock().unlock();
     if (coprocessorHost != null) {
       coprocessorHost.postCloseRegionOperation(operation);
     }
@@ -8690,11 +8690,11 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
     if (this.closing.get()) {
       throw new NotServingRegionException(getRegionInfo().getRegionNameAsString() + " is closing");
     }
-    if (writeLockNeeded) lock(lock.writeLock());
-    else lock(lock.readLock());
+    if (writeLockNeeded) lock(closeLockGuard.writeLock());
+    else lock(closeLockGuard.readLock());
     if (this.closed.get()) {
-      if (writeLockNeeded) lock.writeLock().unlock();
-      else lock.readLock().unlock();
+      if (writeLockNeeded) closeLockGuard.writeLock().unlock();
+      else closeLockGuard.readLock().unlock();
       throw new NotServingRegionException(getRegionInfo().getRegionNameAsString() + " is closed");
     }
   }
@@ -8704,8 +8704,8 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
    * to the try block of #startRegionOperation
    */
   private void closeBulkRegionOperation(){
-    if (lock.writeLock().isHeldByCurrentThread()) lock.writeLock().unlock();
-    else lock.readLock().unlock();
+    if (closeLockGuard.writeLock().isHeldByCurrentThread()) closeLockGuard.writeLock().unlock();
+    else closeLockGuard.readLock().unlock();
   }
 
   /**

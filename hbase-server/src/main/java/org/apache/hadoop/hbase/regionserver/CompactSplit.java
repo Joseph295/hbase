@@ -34,6 +34,7 @@ import org.apache.hadoop.hbase.conf.PropagatingConfigurationObserver;
 import org.apache.hadoop.hbase.quotas.RegionServerSpaceQuotaManager;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionContext;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionLifeCycleTracker;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequester;
 import org.apache.hadoop.hbase.regionserver.throttle.CompactionThroughputControllerFactory;
 import org.apache.hadoop.hbase.regionserver.throttle.ThroughputController;
@@ -83,7 +84,7 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
   public volatile ThreadPoolExecutor splits;
   public volatile ThroughputController compactionThroughputController;
   public volatile boolean compactionsEnabled;
-  private int regionWillNotSplitAbove;
+  private int regionSplitSoftLimit;
 
   CompactSplit(HRegionServer regionServer) {
     this.regionServer = regionServer;
@@ -101,7 +102,7 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
   }
 
   private void createCompactionExecutors() {
-    this.regionWillNotSplitAbove =
+    this.regionSplitSoftLimit =
         conf.getInt(REGION_SERVER_REGION_SPLIT_LIMIT, DEFAULT_REGION_SERVER_REGION_SPLIT_LIMIT);
 
     int largeThreads =
@@ -129,7 +130,7 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
     // don't split regions that are blocking
     HRegion hregion = (HRegion)r;
     try {
-      if ((regionWillNotSplitAbove > regionServer.getOnlineRegionCount())
+      if ((regionServer.getOnlineRegionCount() < regionSplitSoftLimit)
         && hregion.getCompactPriority() >= PRIORITY_USER) {
         byte[] midKey = hregion.checkSplit().orElse(null);
         if (midKey != null) {
@@ -326,28 +327,71 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
 
   private static final Comparator<Runnable> COMPARATOR =
       new Comparator<Runnable>() {
+    private int compare(CompactionRequestImpl r1, CompactionRequestImpl r2) {
+      if (r1 == r2) {
+        return 0; //they are the same request
+      }
+      // less first
+      int cmp = Integer.compare(r1.getPriority(), r2.getPriority());
+      if (cmp != 0) {
+        return cmp;
+      }
+      cmp = Long.compare(r1.getSelectionTime(), r2.getSelectionTime());
+      if (cmp != 0) {
+        return cmp;
+      }
+
+      // break the tie based on hash code
+      return System.identityHashCode(r1) - System.identityHashCode(r2);
+    }
+
     @Override
     public int compare(Runnable r1, Runnable r2) {
-      // xujunhong
-      return r1.hashCode() - r2.hashCode();
+      // CompactionRunner first
+      if (r1 instanceof CompactionRunner) {
+        if (!(r2 instanceof CompactionRunner)) {
+          return -1;
+        }
+      } else {
+        if (r2 instanceof CompactionRunner) {
+          return 1;
+        } else {
+          // break the tie based on hash code
+          return System.identityHashCode(r1) - System.identityHashCode(r2);
+        }
+      }
+      CompactionRunner o1 = (CompactionRunner) r1;
+      CompactionRunner o2 = (CompactionRunner) r2;
+      // less first
+      int cmp = Integer.compare(o1.queuedPriority, o2.queuedPriority);
+      if (cmp != 0) {
+        return cmp;
+      }
+      CompactionContext c1 = o1.compactionContext;
+      CompactionContext c2 = o2.compactionContext;
+      if (c1 != null) {
+        return c2 != null ? compare(c1.getRequest(), c2.getRequest()) : -1;
+      } else {
+        return c2 != null ? 1 : 0;
+      }
     }
   };
 
   public final class CompactionRunner implements Runnable {
     private final HStore store;
     private final HRegion region;
-    private final CompactionContext compaction;
+    private final CompactionContext compactionContext;
     private int queuedPriority;
     private ThreadPoolExecutor parent;
     private User user;
 
-    public CompactionRunner(HStore store, HRegion region, CompactionContext compaction,
+    public CompactionRunner(HStore store, HRegion region, CompactionContext compactionContext,
         ThreadPoolExecutor parent, User user) {
       this.store = store;
       this.region = region;
-      this.compaction = compaction;
+      this.compactionContext = compactionContext;
       this.queuedPriority =
-          compaction != null ? compaction.getRequest().getPriority() : store.getCompactPriority();
+          compactionContext != null ? compactionContext.getRequest().getPriority() : store.getCompactPriority();
       this.parent = parent;
       this.user = user;
     }
@@ -355,7 +399,7 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
     private void doCompaction(User user) {
       CompactionContext c;
       // Common case - system compaction without a file selection. Select now.
-      if (compaction == null) {
+      if (compactionContext == null) {
         int oldPriority = this.queuedPriority;
         this.queuedPriority = this.store.getCompactPriority();
         if (this.queuedPriority > oldPriority) {
@@ -394,7 +438,7 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
           return;
         }
       } else {
-        c = compaction;
+        c = compactionContext;
       }
       // Finally we can compact something.
       assert c != null;
@@ -450,8 +494,8 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
       if (runnable instanceof CompactionRunner) {
         CompactionRunner runner = (CompactionRunner) runnable;
         LOG.debug("Compaction Rejected: " + runner);
-        if (runner.compaction != null) {
-          runner.store.cancelRequestedCompaction(runner.compaction);
+        if (runner.compactionContext != null) {
+          runner.store.cancelRequestedCompaction(runner.compactionContext);
         }
       }
     }

@@ -568,9 +568,9 @@ class MemStoreFlusher implements FlushRequester {
           LOG.warn("{} has too many store files({}); delaying flush up to {} ms",
               region.getRegionInfo().getEncodedName(), getStoreFileCount(region),
               this.blockingWaitTime);
-          if (!this.server.compactSplitThread.requestSplit(region)) {
+          if (!this.server.compactSplit.requestSplit(region)) {
             try {
-              this.server.compactSplitThread.requestSystemCompaction(region,
+              this.server.compactSplit.requestSystemCompaction(region,
                 Thread.currentThread().getName());
             } catch (IOException e) {
               e = e instanceof RemoteException ?
@@ -624,9 +624,9 @@ class MemStoreFlusher implements FlushRequester {
       // We just want to check the size
       boolean shouldSplit = region.checkSplit().isPresent();
       if (shouldSplit) {
-        this.server.compactSplitThread.requestSplit(region);
+        this.server.compactSplit.requestSplit(region);
       } else if (shouldCompact) {
-        server.compactSplitThread.requestSystemCompaction(region, Thread.currentThread().getName());
+        server.compactSplit.requestSystemCompaction(region, Thread.currentThread().getName());
       }
     } catch (DroppedSnapshotException ex) {
       // Cache flush can fail in a few places. If it fails in a critical

@@ -112,7 +112,7 @@ public class TestEndToEndSplitTransaction {
     byte[] fam = Bytes.toBytes("cf_split");
 
     CompactSplit compactSplit =
-      TEST_UTIL.getMiniHBaseCluster().getRegionServer(0).getCompactSplitThread();
+      TEST_UTIL.getMiniHBaseCluster().getRegionServer(0).getCompactSplit();
     TableName tableName = TableName.valueOf("CanSplitTable");
     Table source = TEST_UTIL.getConnection().getTable(tableName);
     Admin admin = TEST_UTIL.getAdmin();

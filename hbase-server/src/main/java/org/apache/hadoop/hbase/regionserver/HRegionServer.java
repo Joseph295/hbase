@@ -283,7 +283,7 @@ public class HRegionServer extends Thread implements
   private ReplicationSinkService replicationSinkHandler;
 
   // Compactions
-  public CompactSplit compactSplitThread;
+  public CompactSplit compactSplit;
 
   /**
    * Map of regions currently being served by this region server. Key is the
@@ -1026,7 +1026,7 @@ public class HRegionServer extends Thread implements
     // TODO: Should we check they are alive? If OOME could have exited already
     if (this.heapMemoryManager != null) this.heapMemoryManager.stop();
     if (this.cacheFlusher != null) this.cacheFlusher.interruptIfNecessary();
-    if (this.compactSplitThread != null) this.compactSplitThread.interruptIfNecessary();
+    if (this.compactSplit != null) this.compactSplit.interruptIfNecessary();
 
     // Stop the snapshot and other procedure handlers, forcefully killing all running tasks
     if (regionServerProcedureManagerHost != null) {
@@ -1057,9 +1057,9 @@ public class HRegionServer extends Thread implements
     // Closing the compactSplit thread before closing meta regions
     if (!this.killed && containsMetaTableRegions()) {
       if (!abortRequested.get() || this.dataFsOk) {
-        if (this.compactSplitThread != null) {
-          this.compactSplitThread.join();
-          this.compactSplitThread = null;
+        if (this.compactSplit != null) {
+          this.compactSplit.join();
+          this.compactSplit = null;
         }
         closeMetaTableRegions(abortRequested.get());
       }
@@ -1530,18 +1530,18 @@ public class HRegionServer extends Thread implements
             }
             if (s.needsCompaction()) {
               // Queue a compaction. Will recognize if major is needed.
-              this.instance.compactSplitThread.requestSystemCompaction(hr, s,
+              this.instance.compactSplit.requestSystemCompaction(hr, s,
                 getName() + " requests compaction");
             } else if (s.shouldPerformMajorCompaction()) {
               s.triggerMajorCompaction();
               if (majorCompactPriority == DEFAULT_PRIORITY ||
                   majorCompactPriority > hr.getCompactPriority()) {
-                this.instance.compactSplitThread.requestCompaction(hr, s,
+                this.instance.compactSplit.requestCompaction(hr, s,
                     getName() + " requests major compaction; use default priority",
                     Store.NO_PRIORITY,
                 CompactionLifeCycleTracker.DUMMY, null);
               } else {
-                this.instance.compactSplitThread.requestCompaction(hr, s,
+                this.instance.compactSplit.requestCompaction(hr, s,
                     getName() + " requests major compaction; use configured priority",
                     this.majorCompactPriority, CompactionLifeCycleTracker.DUMMY, null);
               }
@@ -1801,7 +1801,7 @@ public class HRegionServer extends Thread implements
     this.cacheFlusher = new MemStoreFlusher(conf, this);
 
     // Compaction thread
-    this.compactSplitThread = new CompactSplit(this);
+    this.compactSplit = new CompactSplit(this);
 
     // Background thread to check for compactions; needed if region has not gotten updates
     // in a while. It will take care of not checking too frequently on store-by-store basis.
@@ -1850,7 +1850,7 @@ public class HRegionServer extends Thread implements
 
   private void registerConfigurationObservers() {
     // Registering the compactSplitThread object with the ConfigurationManager.
-    configurationManager.registerObserver(this.compactSplitThread);
+    configurationManager.registerObserver(this.compactSplit);
     configurationManager.registerObserver(this.rpcServices);
     configurationManager.registerObserver(this);
   }
@@ -2015,7 +2015,7 @@ public class HRegionServer extends Thread implements
     if (!r.isReadOnly()) {
       for (HStore s : r.stores.values()) {
         if (s.hasReferences() || s.needsCompaction()) {
-          this.compactSplitThread.requestSystemCompaction(r, s, "Opening Region");
+          this.compactSplit.requestSystemCompaction(r, s, "Opening Region");
         }
       }
     }
@@ -2330,8 +2330,8 @@ public class HRegionServer extends Thread implements
     if (this.walRoller != null) {
       this.walRoller.close();
     }
-    if (this.compactSplitThread != null) {
-      this.compactSplitThread.join();
+    if (this.compactSplit != null) {
+      this.compactSplit.join();
     }
     if (this.executorService != null) this.executorService.shutdown();
     if (this.replicationSourceHandler != null &&
@@ -2676,7 +2676,7 @@ public class HRegionServer extends Thread implements
 
   @Override
   public CompactionRequester getCompactionRequestor() {
-    return this.compactSplitThread;
+    return this.compactSplit;
   }
 
   @Override
@@ -3240,8 +3240,8 @@ public class HRegionServer extends Thread implements
   /**
    * @return the underlying {@link CompactSplit} for the servers
    */
-  public CompactSplit getCompactSplitThread() {
-    return this.compactSplitThread;
+  public CompactSplit getCompactSplit() {
+    return this.compactSplit;
   }
 
   CoprocessorServiceResponse execRegionServerService(

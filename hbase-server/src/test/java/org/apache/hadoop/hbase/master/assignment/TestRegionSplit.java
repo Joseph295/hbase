@@ -94,7 +94,7 @@ public class TestRegionSplit {
     UTIL.getHBaseCluster().getMaster().setCatalogJanitorEnabled(false);
     // Disable compaction.
     for (int i = 0; i < UTIL.getHBaseCluster().getLiveRegionServerThreads().size(); i++) {
-      UTIL.getHBaseCluster().getRegionServer(i).getCompactSplitThread().switchCompaction(false);
+      UTIL.getHBaseCluster().getRegionServer(i).getCompactSplit().switchCompaction(false);
     }
   }
 

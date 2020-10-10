@@ -440,14 +440,10 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
             requestSplit(region);
           }
         }
-      } catch (IOException ex) {
-        IOException remoteEx =
+      } catch (Exception ex) {
+        Exception remoteEx =
             ex instanceof RemoteException ? ((RemoteException) ex).unwrapRemoteException() : ex;
         LOG.error("Compaction failed " + this, remoteEx);
-        region.reportCompactionRequestFailure();
-        server.checkFileSystem();
-      } catch (Exception ex) {
-        LOG.error("Compaction failed " + this, ex);
         region.reportCompactionRequestFailure();
         server.checkFileSystem();
       } finally {

@@ -35,13 +35,13 @@ public interface CompactionRequester {
   /**
    * Request compaction on all the stores of the given region.
    */
-  void requestCompaction(HRegion region, String why, int priority,
+  void requestRegionCompaction(HRegion region, String why, int priority,
       CompactionLifeCycleTracker tracker, @Nullable User user) throws IOException;
 
   /**
    * Request compaction on the given store.
    */
-  void requestCompaction(HRegion region, HStore store, String why, int priority,
+  void requestStoreCompaction(HRegion region, HStore store, String why, int priority,
       CompactionLifeCycleTracker tracker, @Nullable User user) throws IOException;
 
   /**

@@ -79,17 +79,17 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
 
   public final HRegionServer regionServer;
   public final Configuration conf;
-  public volatile ThreadPoolExecutor longCompactions;
-  public volatile ThreadPoolExecutor shortCompactions;
-  public volatile ThreadPoolExecutor splits;
+  public volatile ThreadPoolExecutor longCompactionThreadPool;
+  public volatile ThreadPoolExecutor shortCompactionThreadPool;
+  public volatile ThreadPoolExecutor splitThreadPool;
   public volatile ThroughputController compactionThroughputController;
-  public volatile boolean compactionsEnabled;
+  public volatile boolean isCompactionEnabled;
   private int regionSplitSoftLimit;
 
   CompactSplit(HRegionServer regionServer) {
     this.regionServer = regionServer;
     this.conf = regionServer.getConfiguration();
-    this.compactionsEnabled = this.conf.getBoolean(HBASE_REGION_SERVER_ENABLE_COMPACTION,true);
+    this.isCompactionEnabled = this.conf.getBoolean(HBASE_REGION_SERVER_ENABLE_COMPACTION,true);
     createCompactionExecutors();
     createSplitExcecutors();
     this.compactionThroughputController = CompactionThroughputControllerFactory.create(regionServer, conf);
@@ -97,7 +97,7 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
 
   private void createSplitExcecutors() {
     final String splitThreadName = Thread.currentThread().getName();
-    this.splits = (ThreadPoolExecutor) Executors.newFixedThreadPool(conf.getInt(SPLIT_THREADS, SPLIT_THREADS_DEFAULT),
+    this.splitThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(conf.getInt(SPLIT_THREADS, SPLIT_THREADS_DEFAULT),
       new ThreadFactoryBuilder().setNameFormat(splitThreadName + "-splits-%d").setDaemon(true).build());
   }
 
@@ -108,22 +108,19 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
     int largeThreads =
         Math.max(1, conf.getInt(LARGE_COMPACTION_THREADS, LARGE_COMPACTION_THREADS_DEFAULT));
     int smallThreads = conf.getInt(SMALL_COMPACTION_THREADS, SMALL_COMPACTION_THREADS_DEFAULT);
-
-    // if we have throttle threads, make sure the user also specified size
-    Preconditions.checkArgument(largeThreads > 0 && smallThreads > 0);
-
+    
     final String compactionThreadName = Thread.currentThread().getName();
 
     StealJobQueue<Runnable> stealJobQueue = new StealJobQueue<Runnable>(COMPARATOR);
-    this.longCompactions = new ThreadPoolExecutor(largeThreads, largeThreads, 60, TimeUnit.SECONDS,
+    this.longCompactionThreadPool = new ThreadPoolExecutor(largeThreads, largeThreads, 60, TimeUnit.SECONDS,
         stealJobQueue, new ThreadFactoryBuilder().setNameFormat(compactionThreadName + "-longCompactions-%d")
             .setDaemon(true).build());
-    this.longCompactions.setRejectedExecutionHandler(new Rejection());
-    this.longCompactions.prestartAllCoreThreads();
-    this.shortCompactions = new ThreadPoolExecutor(smallThreads, smallThreads, 60, TimeUnit.SECONDS,
+    this.longCompactionThreadPool.setRejectedExecutionHandler(new Rejection());
+    this.longCompactionThreadPool.prestartAllCoreThreads();
+    this.shortCompactionThreadPool = new ThreadPoolExecutor(smallThreads, smallThreads, 60, TimeUnit.SECONDS,
         stealJobQueue.getStealFromQueue(), new ThreadFactoryBuilder()
             .setNameFormat(compactionThreadName + "-shortCompactions-%d").setDaemon(true).build());
-    this.shortCompactions.setRejectedExecutionHandler(new Rejection());
+    this.shortCompactionThreadPool.setRejectedExecutionHandler(new Rejection());
   }
 
   public synchronized boolean requestSplit(final Region r) {
@@ -160,7 +157,7 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
       return;
     }
     try {
-      this.splits.execute(new SplitRequest(region, midKey, this.regionServer, user));
+      this.splitThreadPool.execute(new SplitRequest(region, midKey, this.regionServer, user));
       if (LOG.isDebugEnabled()) {
         LOG.debug("Splitting " + region + ", " + this);
       }
@@ -170,8 +167,8 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
   }
 
   private void interrupt() {
-    longCompactions.shutdownNow();
-    shortCompactions.shutdownNow();
+    longCompactionThreadPool.shutdownNow();
+    shortCompactionThreadPool.shutdownNow();
   }
 
   private void reInitializeCompactionsExecutors() {
@@ -179,28 +176,28 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
   }
 
   @Override
-  public synchronized void requestCompaction(HRegion region, String why, int priority,
+  public synchronized void requestRegionCompaction(HRegion region, String why, int priority,
       CompactionLifeCycleTracker tracker, User user) throws IOException {
     requestCompactionInternal(region, why, priority, true, tracker, user);
   }
 
   @Override
-  public synchronized void requestCompaction(HRegion region, HStore store, String why, int priority,
+  public synchronized void requestStoreCompaction(HRegion region, HStore store, String why, int priority,
       CompactionLifeCycleTracker tracker, User user) throws IOException {
     requestCompactionInternal(region, store, why, priority, true, tracker, user);
   }
 
   @Override
   public void switchCompaction(boolean compactionSwitch) {
-    if (compactionSwitch && !compactionsEnabled) {
+    if (compactionSwitch && !isCompactionEnabled) {
       LOG.info("Re-Initializing compactions because user switched on compactions");
       reInitializeCompactionsExecutors();
     } else {
       LOG.info("Interrupting running compactions because user switched off compactions");
       interrupt();
     }
-    this.compactionsEnabled = compactionSwitch;
-    this.conf.set(HBASE_REGION_SERVER_ENABLE_COMPACTION,String.valueOf(compactionsEnabled));
+    this.isCompactionEnabled = compactionSwitch;
+    this.conf.set(HBASE_REGION_SERVER_ENABLE_COMPACTION,String.valueOf(isCompactionEnabled));
   }
 
   private void requestCompactionInternal(HRegion region, String why, int priority,
@@ -249,18 +246,18 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
     if (selectNow) {
       // compaction.get is safe as we will just return if selectNow is true but no compaction is
       // selected
-      pool = store.throttleCompaction(compaction.getRequest().getSize()) ? longCompactions
-          : shortCompactions;
+      pool = store.throttleCompaction(compaction.getRequest().getSize()) ? longCompactionThreadPool
+          : shortCompactionThreadPool;
     } else {
       // We assume that most compactions are small. So, put system compactions into small
       // pool; we will do selection there, and move to large pool if necessary.
-      pool = shortCompactions;
+      pool = shortCompactionThreadPool;
     }
     pool.execute(
       new CompactionRunner(store, region, compaction, pool, user));
     region.incrementCompactionsQueuedCount();
     if (LOG.isDebugEnabled()) {
-      String type = (pool == shortCompactions) ? "Small " : "Large ";
+      String type = (pool == shortCompactionThreadPool) ? "Small " : "Large ";
       LOG.debug(type + "Compaction requested: " + (selectNow ? compaction.toString() : "system")
           + (why != null && !why.isEmpty() ? "; Because: " + why : "") + "; " + this);
     }
@@ -281,7 +278,7 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
       User user)
       throws IOException {
     // don't even select for compaction if disableCompactions is set to true
-    if (!compactionsEnabled) {
+    if (!isCompactionEnabled) {
       LOG.info(String.format("User has disabled compactions"));
       return Optional.empty();
     }
@@ -298,9 +295,9 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
    * Only interrupt once it's done with a run through the work loop.
    */
   void interruptIfNecessary() {
-    splits.shutdown();
-    longCompactions.shutdown();
-    shortCompactions.shutdown();
+    splitThreadPool.shutdown();
+    longCompactionThreadPool.shutdown();
+    shortCompactionThreadPool.shutdown();
   }
 
   private void waitFor(ThreadPoolExecutor t, String name) {
@@ -320,9 +317,9 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
   }
 
   void join() {
-    waitFor(splits, "Split Thread");
-    waitFor(longCompactions, "Large Compaction Thread");
-    waitFor(shortCompactions, "Small Compaction Thread");
+    waitFor(splitThreadPool, "Split Thread");
+    waitFor(longCompactionThreadPool, "Large Compaction Thread");
+    waitFor(shortCompactionThreadPool, "Small Compaction Thread");
   }
 
   private static final Comparator<Runnable> COMPARATOR =
@@ -427,11 +424,12 @@ public class CompactSplit implements CompactionRequester, PropagatingConfigurati
         // We might end up waiting for a while, so cancel the selection.
 
         ThreadPoolExecutor pool =
-            store.throttleCompaction(c.getRequest().getSize()) ? longCompactions : shortCompactions;
+            store.throttleCompaction(c.getRequest().getSize()) ?
+              longCompactionThreadPool : shortCompactionThreadPool;
 
         // Long compaction pool can process small job
         // Short compaction pool should not process large job
-        if (this.parent == shortCompactions && pool == longCompactions) {
+        if (this.parent == shortCompactionThreadPool && pool == longCompactionThreadPool) {
           this.store.cancelRequestedCompaction(c);
           this.parent = pool;
           this.parent.execute(this);

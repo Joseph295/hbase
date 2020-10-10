@@ -123,7 +123,7 @@ public class TestEndToEndSplitTransaction {
     try {
       admin.createTable(htd);
       TEST_UTIL.loadTable(source, fam);
-      compactSplit.compactionsEnabled = false;
+      compactSplit.isCompactionEnabled = false;
       compactSplit.conf.set(HBASE_REGION_SERVER_ENABLE_COMPACTION,String.valueOf(false));
 
       admin.split(tableName);
@@ -142,7 +142,7 @@ public class TestEndToEndSplitTransaction {
           }));
       assertTrue("Regions did not split properly", regions.size() > 1);
       assertTrue("Could not get reference any of the store file", scanner.size() > 1);
-      compactSplit.compactionsEnabled = true;
+      compactSplit.isCompactionEnabled = true;
       compactSplit.conf.set(HBASE_REGION_SERVER_ENABLE_COMPACTION,String.valueOf(true));
 
       for (HRegion region : regions) {
@@ -163,8 +163,8 @@ public class TestEndToEndSplitTransaction {
       });
       scanner.clear();
       Closeables.close(source, true);
-      if (!compactSplit.compactionsEnabled) {
-        compactSplit.compactionsEnabled = true;
+      if (!compactSplit.isCompactionEnabled) {
+        compactSplit.isCompactionEnabled = true;
         compactSplit.conf.set(HBASE_REGION_SERVER_ENABLE_COMPACTION, String.valueOf(true));
       }
       TEST_UTIL.deleteTableIfAny(tableName);

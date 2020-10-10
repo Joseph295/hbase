@@ -120,9 +120,9 @@ public class TestCompactSplitThread {
       HRegionServer regionServer = TEST_UTIL.getRSForFirstRegionInTable(tableName);
 
       // check initial configuration of thread pool sizes
-      assertEquals(3, regionServer.compactSplit.longCompactions.getCorePoolSize());
-      assertEquals(4, regionServer.compactSplit.shortCompactions.getCorePoolSize());
-      assertEquals(5, regionServer.compactSplit.splits.getCorePoolSize());
+      assertEquals(3, regionServer.compactSplit.longCompactionThreadPool.getCorePoolSize());
+      assertEquals(4, regionServer.compactSplit.shortCompactionThreadPool.getCorePoolSize());
+      assertEquals(5, regionServer.compactSplit.splitThreadPool.getCorePoolSize());
 
       // change bigger configurations and do online update
       conf.setInt(CompactSplit.LARGE_COMPACTION_THREADS, 4);
@@ -135,9 +135,9 @@ public class TestCompactSplitThread {
       }
 
       // check again after online update
-      assertEquals(4, regionServer.compactSplit.longCompactions.getCorePoolSize());
-      assertEquals(5, regionServer.compactSplit.shortCompactions.getCorePoolSize());
-      assertEquals(6, regionServer.compactSplit.splits.getCorePoolSize());
+      assertEquals(4, regionServer.compactSplit.longCompactionThreadPool.getCorePoolSize());
+      assertEquals(5, regionServer.compactSplit.shortCompactionThreadPool.getCorePoolSize());
+      assertEquals(6, regionServer.compactSplit.splitThreadPool.getCorePoolSize());
 
       // change smaller configurations and do online update
       conf.setInt(CompactSplit.LARGE_COMPACTION_THREADS, 2);
@@ -150,9 +150,9 @@ public class TestCompactSplitThread {
       }
 
       // check again after online update
-      assertEquals(2, regionServer.compactSplit.longCompactions.getCorePoolSize());
-      assertEquals(3, regionServer.compactSplit.shortCompactions.getCorePoolSize());
-      assertEquals(4, regionServer.compactSplit.splits.getCorePoolSize());
+      assertEquals(2, regionServer.compactSplit.longCompactionThreadPool.getCorePoolSize());
+      assertEquals(3, regionServer.compactSplit.shortCompactionThreadPool.getCorePoolSize());
+      assertEquals(4, regionServer.compactSplit.splitThreadPool.getCorePoolSize());
     } finally {
       conn.close();
     }

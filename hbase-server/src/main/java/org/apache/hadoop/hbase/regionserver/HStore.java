@@ -1874,11 +1874,10 @@ public class HStore implements Store, HeapSize, StoreConfigInformation,
   }
 
   public Optional<CompactionContext> requestCompaction() throws IOException {
-    return requestCompaction(NO_PRIORITY, CompactionLifeCycleTracker.DUMMY, null);
+    return requestCompaction(NO_PRIORITY, null);
   }
 
-  public Optional<CompactionContext> requestCompaction(int priority,
-      CompactionLifeCycleTracker tracker, User user) throws IOException {
+  public Optional<CompactionContext> requestCompaction(int priority, User user) throws IOException {
     // don't even select for compaction if writes are disabled
     if (!this.areWritesEnabled()) {
       return Optional.empty();

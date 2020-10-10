@@ -693,7 +693,7 @@ abstract class ServerRpcConnection implements Closeable {
     ServerCall<?> call = createCall(id, this.service, md, header, param, cellScanner, totalRequestSize,
       this.addr, timeout, this.callCleanup);
 
-    if (!this.rpcServer.scheduler.dispatch(new CallRunner(this.rpcServer, call))) {
+    if (!this.rpcServer.rpcScheduler.dispatch(new CallRunner(this.rpcServer, call))) {
       this.rpcServer.callQueueSizeInBytes.add(-1 * call.getSize());
       this.rpcServer.metrics.exception(RpcServer.CALL_QUEUE_TOO_BIG_EXCEPTION);
       call.setResponse(null, null, RpcServer.CALL_QUEUE_TOO_BIG_EXCEPTION,

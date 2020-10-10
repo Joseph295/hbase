@@ -209,7 +209,7 @@ public class TestCompactionWithThroughputController {
       HRegionServer regionServer = TEST_UTIL.getRSForFirstRegionInTable(tableName);
       PressureAwareCompactionThroughputController throughputController =
           (PressureAwareCompactionThroughputController) regionServer.compactSplitThread
-              .getCompactionThroughputController();
+            .compactionThroughputController;
       assertEquals(10L * 1024 * 1024, throughputController.getMaxThroughput(), EPSILON);
       Table table = conn.getTable(tableName);
       for (int i = 0; i < 5; i++) {
@@ -236,7 +236,7 @@ public class TestCompactionWithThroughputController {
         NoLimitThroughputController.class.getName());
       regionServer.compactSplitThread.onConfigurationChange(conf);
       assertTrue(throughputController.isStopped());
-      assertTrue(regionServer.compactSplitThread.getCompactionThroughputController()
+      assertTrue(regionServer.compactSplitThread.compactionThroughputController
         instanceof NoLimitThroughputController);
     } finally {
       conn.close();

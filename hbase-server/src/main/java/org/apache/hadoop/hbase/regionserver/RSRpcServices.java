@@ -1695,7 +1695,7 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
     try {
       checkOpen();
       requestCount.increment();
-      boolean prevState = regionServer.compactSplitThread.isCompactionsEnabled();
+      boolean prevState = regionServer.compactSplitThread.compactionsEnabled;
       CompactionSwitchResponse response =
           CompactionSwitchResponse.newBuilder().setPrevState(prevState).build();
       if (prevState == request.getEnabled()) {
@@ -1840,10 +1840,10 @@ public class RSRpcServices implements HBaseRPCErrorHandler,
           LOG.debug("clear " + queueName + " compaction queue");
           switch (queueName) {
             case "long":
-              regionServer.compactSplitThread.clearLongCompactionsQueue();
+              regionServer.compactSplitThread.longCompactions.getQueue().clear();
               break;
             case "short":
-              regionServer.compactSplitThread.clearShortCompactionsQueue();
+              regionServer.compactSplitThread.shortCompactions.getQueue().clear();
               break;
             default:
               LOG.warn("Unknown queue name " + queueName);

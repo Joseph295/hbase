@@ -1,5 +1,4 @@
 /**
- *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,32 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hbase.conf;
+
+package org.apache.hadoop.hbase.regionserver;
 
 import org.apache.yetus.audience.InterfaceAudience;
 
-/**
- * This extension to ConfigurationObserver allows the configuration to propagate to the children of
- * the current {@link ConfigurationObserver}. This is the preferred way to make a class online
- * configurable because it allows the user to configure the children in a recursive manner
- * automatically. 
- */
 @InterfaceAudience.Private
-public interface PropagatingConfigurationObserver extends ConfigurationObserver {
-
-  /**
-   * Needs to be called to register the children to the manager. 
-   * @param manager : to register to
-   */
-  default void registerChildren(ConfigurationManager manager) {
-
-  }
-
-  /**
-   * Needs to be called to deregister the children from the manager. 
-   * @param manager : to deregister from
-   */
-  default void deregisterChildren(ConfigurationManager manager) {
-
+public interface CompactionCompleteTracker {
+  default void completed(Store store) {
   }
 }

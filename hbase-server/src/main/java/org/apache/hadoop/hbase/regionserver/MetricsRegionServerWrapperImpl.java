@@ -238,7 +238,7 @@ class MetricsRegionServerWrapperImpl
     if (this.regionServer.compactSplitThread == null) {
       return 0;
     }
-    return this.regionServer.compactSplitThread.getSplitQueueSize();
+    return this.regionServer.compactSplitThread.splits.getQueue().size();
   }
 
   @Override
@@ -247,7 +247,8 @@ class MetricsRegionServerWrapperImpl
     if (this.regionServer.compactSplitThread == null) {
       return 0;
     }
-    return this.regionServer.compactSplitThread.getCompactionQueueSize();
+    return this.regionServer.compactSplitThread.longCompactions.getQueue().size()
+      + this.regionServer.compactSplitThread.shortCompactions.getQueue().size();
   }
 
   @Override
@@ -256,7 +257,7 @@ class MetricsRegionServerWrapperImpl
     if (this.regionServer.compactSplitThread == null) {
       return 0;
     }
-    return this.regionServer.compactSplitThread.getSmallCompactionQueueSize();
+    return this.regionServer.compactSplitThread.shortCompactions.getQueue().size();
   }
 
   @Override
@@ -265,7 +266,7 @@ class MetricsRegionServerWrapperImpl
     if (this.regionServer.compactSplitThread == null) {
       return 0;
     }
-    return this.regionServer.compactSplitThread.getLargeCompactionQueueSize();
+    return this.regionServer.compactSplitThread.longCompactions.getQueue().size();
   }
 
   @Override

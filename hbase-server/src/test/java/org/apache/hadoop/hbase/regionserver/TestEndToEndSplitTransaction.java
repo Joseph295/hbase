@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hbase.regionserver;
 
+import static org.apache.hadoop.hbase.regionserver.CompactSplit.HBASE_REGION_SERVER_ENABLE_COMPACTION;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -122,7 +123,9 @@ public class TestEndToEndSplitTransaction {
     try {
       admin.createTable(htd);
       TEST_UTIL.loadTable(source, fam);
-      compactSplit.setCompactionsEnabled(false);
+      compactSplit.compactionsEnabled = false;
+      compactSplit.conf.set(HBASE_REGION_SERVER_ENABLE_COMPACTION,String.valueOf(false));
+
       admin.split(tableName);
       TEST_UTIL.waitFor(60000, () -> TEST_UTIL.getHBaseCluster().getRegions(tableName).size() == 2);
 
@@ -139,7 +142,9 @@ public class TestEndToEndSplitTransaction {
           }));
       assertTrue("Regions did not split properly", regions.size() > 1);
       assertTrue("Could not get reference any of the store file", scanner.size() > 1);
-      compactSplit.setCompactionsEnabled(true);
+      compactSplit.compactionsEnabled = true;
+      compactSplit.conf.set(HBASE_REGION_SERVER_ENABLE_COMPACTION,String.valueOf(true));
+
       for (HRegion region : regions) {
         region.compact(true);
       }
@@ -158,8 +163,9 @@ public class TestEndToEndSplitTransaction {
       });
       scanner.clear();
       Closeables.close(source, true);
-      if (!compactSplit.isCompactionsEnabled()) {
-        compactSplit.setCompactionsEnabled(true);
+      if (!compactSplit.compactionsEnabled) {
+        compactSplit.compactionsEnabled = true;
+        compactSplit.conf.set(HBASE_REGION_SERVER_ENABLE_COMPACTION, String.valueOf(true));
       }
       TEST_UTIL.deleteTableIfAny(tableName);
     }

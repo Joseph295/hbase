@@ -121,7 +121,7 @@ public class NettyRpcServer extends RpcServer {
       throw new InterruptedIOException(e.getMessage());
     }
     initReconfigurable(conf);
-    this.scheduler.init(new RpcSchedulerContext(this));
+    this.rpcScheduler.init(new RpcSchedulerContext(this));
   }
 
   @VisibleForTesting
@@ -141,7 +141,7 @@ public class NettyRpcServer extends RpcServer {
     }
     this.authManager = new ServiceAuthorizationManager();
     HBasePolicyProvider.init(conf, authManager);
-    scheduler.start();
+    rpcScheduler.start();
     started = true;
   }
 
@@ -157,7 +157,7 @@ public class NettyRpcServer extends RpcServer {
     }
     allChannels.close().awaitUninterruptibly();
     serverChannel.close();
-    scheduler.stop();
+    rpcScheduler.stop();
     closed.countDown();
     running = false;
   }

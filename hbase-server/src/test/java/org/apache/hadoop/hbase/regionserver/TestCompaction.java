@@ -461,26 +461,26 @@ public class TestCompaction {
     thread.switchCompaction(false);
     thread.requestCompaction(r, store, "test", Store.PRIORITY_USER,
       CompactionLifeCycleTracker.DUMMY, null);
-    assertFalse(thread.isCompactionsEnabled());
-    int longCompactions = thread.getLongCompactions().getActiveCount();
-    int shortCompactions = thread.getShortCompactions().getActiveCount();
+    assertFalse(thread.compactionsEnabled);
+    int longCompactions = thread.longCompactions.getActiveCount();
+    int shortCompactions = thread.shortCompactions.getActiveCount();
     assertEquals("longCompactions=" + longCompactions + "," +
         "shortCompactions=" + shortCompactions, 0, longCompactions + shortCompactions);
     thread.switchCompaction(true);
-    assertTrue(thread.isCompactionsEnabled());
+    assertTrue(thread.compactionsEnabled);
     // Make sure no compactions have run.
-    assertEquals(0, thread.getLongCompactions().getCompletedTaskCount() +
-        thread.getShortCompactions().getCompletedTaskCount());
+    assertEquals(0, thread.longCompactions.getCompletedTaskCount() +
+        thread.shortCompactions.getCompletedTaskCount());
     // Request a compaction and make sure it is submitted successfully.
     thread.requestCompaction(r, store, "test", Store.PRIORITY_USER,
         CompactionLifeCycleTracker.DUMMY, null);
     // Wait until the compaction finishes.
     Waiter.waitFor(UTIL.getConfiguration(), 5000,
-        (Waiter.Predicate<Exception>) () -> thread.getLongCompactions().getCompletedTaskCount() +
-        thread.getShortCompactions().getCompletedTaskCount() == 1);
+        (Waiter.Predicate<Exception>) () -> thread.longCompactions.getCompletedTaskCount() +
+        thread.shortCompactions.getCompletedTaskCount() == 1);
     // Make sure there are no compactions running.
-    assertEquals(0, thread.getLongCompactions().getActiveCount()
-        + thread.getShortCompactions().getActiveCount());
+    assertEquals(0, thread.longCompactions.getActiveCount()
+        + thread.shortCompactions.getActiveCount());
   }
 
   @Test public void testInterruptingRunningCompactions() throws Exception {
@@ -718,7 +718,7 @@ public class TestCompaction {
     CompactSplit cst = new CompactSplit(mockServer);
     when(mockServer.getCompactSplitThread()).thenReturn(cst);
     //prevent large compaction thread pool stealing job from small compaction queue.
-    cst.shutdownLongCompactions();
+    cst.longCompactions.shutdown();
     // Set up the region mock that redirects compactions.
     HRegion r = mock(HRegion.class);
     when(

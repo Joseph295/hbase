@@ -3180,7 +3180,7 @@ public class HRegionServer extends Thread implements
     return this.nonceManager;
   }
 
-  private static class MovedRegionInfo {
+  public static class MovedRegionInfo {
     private final ServerName serverName;
     private final long seqNum;
 

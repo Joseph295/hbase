@@ -34,5 +34,7 @@ public interface ConfigurationObserver {
    * This method would be called by the {@link ConfigurationManager}
    * object when the {@link Configuration} object is reloaded from disk.
    */
-  void onConfigurationChange(Configuration conf);
+  default void onConfigurationChange(Configuration conf) {
+
+  }
 }

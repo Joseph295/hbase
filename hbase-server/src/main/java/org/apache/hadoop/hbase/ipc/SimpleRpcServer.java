@@ -395,7 +395,7 @@ public class SimpleRpcServer extends RpcServer {
     connectionManager = new ConnectionManager();
     initReconfigurable(conf);
 
-    this.scheduler.init(new RpcSchedulerContext(this));
+    this.rpcScheduler.init(new RpcSchedulerContext(this));
   }
 
   /**
@@ -429,7 +429,7 @@ public class SimpleRpcServer extends RpcServer {
     HBasePolicyProvider.init(conf, authManager);
     responder.start();
     listener.start();
-    scheduler.start();
+    rpcScheduler.start();
     started = true;
   }
 
@@ -445,7 +445,7 @@ public class SimpleRpcServer extends RpcServer {
     listener.interrupt();
     listener.doStop();
     responder.interrupt();
-    scheduler.stop();
+    rpcScheduler.stop();
     notifyAll();
   }
 
@@ -612,9 +612,9 @@ public class SimpleRpcServer extends RpcServer {
         LOG.trace("Connection from " + connection +
             "; connections=" + size() +
             ", queued calls size (bytes)=" + callQueueSizeInBytes.sum() +
-            ", general queued calls=" + scheduler.getGeneralQueueLength() +
-            ", priority queued calls=" + scheduler.getPriorityQueueLength() +
-            ", meta priority queued calls=" + scheduler.getMetaPriorityQueueLength());
+            ", general queued calls=" + rpcScheduler.getGeneralQueueLength() +
+            ", priority queued calls=" + rpcScheduler.getPriorityQueueLength() +
+            ", meta priority queued calls=" + rpcScheduler.getMetaPriorityQueueLength());
       }
       return connection;
     }

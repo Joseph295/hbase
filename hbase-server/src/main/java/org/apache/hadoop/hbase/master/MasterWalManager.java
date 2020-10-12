@@ -92,10 +92,10 @@ public class MasterWalManager {
   private final Lock splitLogLock = new ReentrantLock();
 
   /**
-   * Superceded by {@link SplitWALManager}; i.e. procedure-based WAL splitting rather than
+   * Superceded by {@link SplitWALProcedureManager}; i.e. procedure-based WAL splitting rather than
    *   'classic' zk-coordinated WAL splitting.
-   * @deprecated  since 2.3.0 and 3.0.0 to be removed in 4.0.0; replaced by {@link SplitWALManager}.
-   * @see SplitWALManager
+   * @deprecated  since 2.3.0 and 3.0.0 to be removed in 4.0.0; replaced by {@link SplitWALProcedureManager}.
+   * @see SplitWALProcedureManager
    */
   @Deprecated
   private final SplitLogManager splitLogManager;

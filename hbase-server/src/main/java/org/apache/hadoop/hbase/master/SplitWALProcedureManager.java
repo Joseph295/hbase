@@ -71,8 +71,8 @@ import org.apache.hbase.thirdparty.com.google.common.collect.Lists;
  * @see SplitLogManager for the original distributed split WAL manager.
  */
 @InterfaceAudience.Private
-public class SplitWALManager {
-  private static final Logger LOG = LoggerFactory.getLogger(SplitWALManager.class);
+public class SplitWALProcedureManager {
+  private static final Logger LOG = LoggerFactory.getLogger(SplitWALProcedureManager.class);
 
   private final MasterServices master;
   private final SplitWorkerAssigner splitWorkerAssigner;
@@ -81,7 +81,7 @@ public class SplitWALManager {
   private final Configuration conf;
   private final Path walArchiveDir;
 
-  public SplitWALManager(MasterServices master) throws IOException {
+  public SplitWALProcedureManager(MasterServices master) throws IOException {
     this.master = master;
     this.conf = master.getConfiguration();
     this.splitWorkerAssigner = new SplitWorkerAssigner(this.master,

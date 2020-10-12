@@ -509,7 +509,7 @@ public interface MasterServices extends Server {
   /**
    * @return return null if current is zk-based WAL splitting
    */
-  default SplitWALManager getSplitWALManager(){
+  default SplitWALProcedureManager getSplitWALProcedureManager(){
     return null;
   }
 

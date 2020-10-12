@@ -85,7 +85,7 @@ import org.apache.hbase.thirdparty.com.google.common.annotations.VisibleForTesti
  * completed (either with success or with error) it will be not be submitted
  * again. If a task is resubmitted then there is a risk that old "delete task"
  * can delete the re-submission.
- * @see SplitWALManager for an alternate implementation based on Procedures.
+ * @see SplitWALProcedureManager for an alternate implementation based on Procedures.
  * @deprecated since 2.4.0 and in 3.0.0, to be removed in 4.0.0, replaced by procedure-based
  *   distributed WAL splitter, see SplitWALManager.
  */

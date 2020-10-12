@@ -353,7 +353,7 @@ public class HMaster extends HRegionServer implements MasterServices {
   // and MasterWalManager, which means zk-based WAL splitting code will be
   // useless after we switch to the procedure-based one. our eventual goal
   // is to remove all the zk-based WAL splitting code.
-  private SplitWALManager splitWALManager;
+  private SplitWALProcedureManager splitWALProcedureManager;
 
   // server manager to deal with region server info
   private volatile ServerManager serverManager;
@@ -948,7 +948,7 @@ public class HMaster extends HRegionServer implements MasterServices {
     this.syncReplicationReplayWALManager = new SyncReplicationReplayWALManager(this);
     if (!conf.getBoolean(HBASE_SPLIT_WAL_COORDINATED_BY_ZK,
         DEFAULT_HBASE_SPLIT_COORDINATED_BY_ZK)) {
-      this.splitWALManager = new SplitWALManager(this);
+      this.splitWALProcedureManager = new SplitWALProcedureManager(this);
     }
 
     // initialize master local region
@@ -1394,8 +1394,8 @@ public class HMaster extends HRegionServer implements MasterServices {
   }
 
   @Override
-  public SplitWALManager getSplitWALManager() {
-    return splitWALManager;
+  public SplitWALProcedureManager getSplitWALProcedureManager() {
+    return splitWALProcedureManager;
   }
 
   @Override

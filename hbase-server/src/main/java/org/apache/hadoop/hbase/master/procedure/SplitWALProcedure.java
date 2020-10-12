@@ -19,7 +19,7 @@ package org.apache.hadoop.hbase.master.procedure;
 import java.io.IOException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.master.SplitWALManager;
+import org.apache.hadoop.hbase.master.SplitWALProcedureManager;
 import org.apache.hadoop.hbase.procedure2.ProcedureStateSerializer;
 import org.apache.hadoop.hbase.procedure2.ProcedureSuspendedException;
 import org.apache.hadoop.hbase.procedure2.ProcedureUtil;
@@ -63,10 +63,11 @@ public class SplitWALProcedure
   @Override
   protected Flow executeFromState(MasterProcedureEnv env, MasterProcedureProtos.SplitWALState state)
       throws ProcedureSuspendedException, ProcedureYieldException, InterruptedException {
-    SplitWALManager splitWALManager = env.getMasterServices().getSplitWALManager();
+    SplitWALProcedureManager
+      splitWALProcedureManager = env.getMasterServices().getSplitWALProcedureManager();
     switch (state) {
       case ACQUIRE_SPLIT_WAL_WORKER:
-        worker = splitWALManager.acquireSplitWALWorker(this);
+        worker = splitWALProcedureManager.acquireSplitWALWorker(this);
         setNextState(MasterProcedureProtos.SplitWALState.DISPATCH_WAL_TO_WORKER);
         return Flow.HAS_MORE_STATE;
       case DISPATCH_WAL_TO_WORKER:
@@ -77,7 +78,7 @@ public class SplitWALProcedure
       case RELEASE_SPLIT_WORKER:
         boolean finished;
         try {
-          finished = splitWALManager.isSplitWALFinished(walPath);
+          finished = splitWALProcedureManager.isSplitWALFinished(walPath);
         } catch (IOException ioe) {
           if (retryCounter == null) {
             retryCounter = ProcedureUtil.createRetryCounter(env.getMasterConfiguration());
@@ -90,7 +91,7 @@ public class SplitWALProcedure
           skipPersistence();
           throw new ProcedureSuspendedException();
         }
-        splitWALManager.releaseSplitWALWorker(worker, env.getProcedureScheduler());
+        splitWALProcedureManager.releaseSplitWALWorker(worker, env.getProcedureScheduler());
         if (!finished) {
           LOG.warn("Failed to split wal {} by server {}, retry...", walPath, worker);
           setNextState(MasterProcedureProtos.SplitWALState.ACQUIRE_SPLIT_WAL_WORKER);
@@ -187,8 +188,8 @@ public class SplitWALProcedure
   protected void afterReplay(MasterProcedureEnv env){
     if (worker != null) {
       if (env != null && env.getMasterServices() != null &&
-          env.getMasterServices().getSplitWALManager() != null) {
-        env.getMasterServices().getSplitWALManager().addUsedSplitWALWorker(worker);
+          env.getMasterServices().getSplitWALProcedureManager() != null) {
+        env.getMasterServices().getSplitWALProcedureManager().addUsedSplitWALWorker(worker);
       }
     }
   }

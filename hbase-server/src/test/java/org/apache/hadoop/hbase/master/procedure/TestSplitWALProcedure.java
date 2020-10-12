@@ -30,7 +30,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.master.HMaster;
-import org.apache.hadoop.hbase.master.SplitWALManager;
+import org.apache.hadoop.hbase.master.SplitWALProcedureManager;
 import org.apache.hadoop.hbase.procedure2.Procedure;
 import org.apache.hadoop.hbase.procedure2.ProcedureExecutor;
 import org.apache.hadoop.hbase.procedure2.ProcedureTestingUtility;
@@ -54,7 +54,7 @@ public class TestSplitWALProcedure {
   private static HBaseTestingUtility TEST_UTIL;
   private HMaster master;
   private TableName TABLE_NAME;
-  private SplitWALManager splitWALManager;
+  private SplitWALProcedureManager splitWALProcedureManager;
   private byte[] FAMILY;
 
   @Before
@@ -64,7 +64,7 @@ public class TestSplitWALProcedure {
     TEST_UTIL.getConfiguration().setInt(HBASE_SPLIT_WAL_MAX_SPLITTER, 1);
     TEST_UTIL.startMiniCluster(3);
     master = TEST_UTIL.getHBaseCluster().getMaster();
-    splitWALManager = master.getSplitWALManager();
+    splitWALProcedureManager = master.getSplitWALProcedureManager();
     TABLE_NAME = TableName.valueOf(Bytes.toBytes("TestSplitWALProcedure"));
     FAMILY = Bytes.toBytes("test");
   }
@@ -86,7 +86,8 @@ public class TestSplitWALProcedure {
     }
     HRegionServer testServer = TEST_UTIL.getHBaseCluster().getRegionServer(0);
     ProcedureExecutor<MasterProcedureEnv> masterPE = master.getMasterProcedureExecutor();
-    List<FileStatus> wals = splitWALManager.getWALsToSplit(testServer.getServerName(), false);
+    List<FileStatus> wals = splitWALProcedureManager
+      .getWALsToSplit(testServer.getServerName(), false);
     Assert.assertEquals(1, wals.size());
     TEST_UTIL.getHBaseCluster().killRegionServer(testServer.getServerName());
     TEST_UTIL.waitFor(30000, () -> master.getProcedures().stream()
@@ -109,7 +110,8 @@ public class TestSplitWALProcedure {
       TEST_UTIL.loadTable(table, FAMILY);
     }
     HRegionServer testServer = TEST_UTIL.getHBaseCluster().getRegionServer(0);
-    List<FileStatus> wals = splitWALManager.getWALsToSplit(testServer.getServerName(), false);
+    List<FileStatus> wals = splitWALProcedureManager
+      .getWALsToSplit(testServer.getServerName(), false);
     Assert.assertEquals(1, wals.size());
     SplitWALProcedure splitWALProcedure =
         new SplitWALProcedure(wals.get(0).getPath().toString(), testServer.getServerName());

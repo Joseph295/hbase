@@ -43,7 +43,7 @@ import org.apache.hadoop.hbase.master.MasterServices;
 import org.apache.hadoop.hbase.master.MasterWalManager;
 import org.apache.hadoop.hbase.master.MockNoopMasterServices;
 import org.apache.hadoop.hbase.master.ServerManager;
-import org.apache.hadoop.hbase.master.SplitWALManager;
+import org.apache.hadoop.hbase.master.SplitWALProcedureManager;
 import org.apache.hadoop.hbase.master.TableStateManager;
 import org.apache.hadoop.hbase.master.balancer.LoadBalancerFactory;
 import org.apache.hadoop.hbase.master.procedure.MasterProcedureConstants;
@@ -78,7 +78,7 @@ import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos.ResultOrEx
 public class MockMasterServices extends MockNoopMasterServices {
   private final MasterFileSystem fileSystemManager;
   private final MasterWalManager walManager;
-  private final SplitWALManager splitWALManager;
+  private final SplitWALProcedureManager splitWALProcedureManager;
   private final AssignmentManager assignmentManager;
   private final TableStateManager tableStateManager;
 
@@ -100,9 +100,9 @@ public class MockMasterServices extends MockNoopMasterServices {
     Superusers.initialize(conf);
     this.fileSystemManager = new MasterFileSystem(conf);
     this.walManager = new MasterWalManager(this);
-    this.splitWALManager =
+    this.splitWALProcedureManager =
       conf.getBoolean(HBASE_SPLIT_WAL_COORDINATED_BY_ZK, DEFAULT_HBASE_SPLIT_COORDINATED_BY_ZK)?
-        null: new SplitWALManager(this);
+        null: new SplitWALProcedureManager(this);
 
     // Mock an AM.
     this.assignmentManager = new AssignmentManager(this, new MockRegionStateStore(this)) {
@@ -363,7 +363,7 @@ public class MockMasterServices extends MockNoopMasterServices {
     return builder.build();
   }
 
-  @Override public SplitWALManager getSplitWALManager() {
-    return splitWALManager;
+  @Override public SplitWALProcedureManager getSplitWALProcedureManager() {
+    return splitWALProcedureManager;
   }
 }

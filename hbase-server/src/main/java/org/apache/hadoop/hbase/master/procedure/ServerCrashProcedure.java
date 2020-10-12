@@ -30,14 +30,13 @@ import org.apache.hadoop.hbase.client.RegionReplicaUtil;
 import org.apache.hadoop.hbase.client.TableState;
 import org.apache.hadoop.hbase.master.MasterServices;
 import org.apache.hadoop.hbase.master.MasterWalManager;
-import org.apache.hadoop.hbase.master.SplitWALManager;
+import org.apache.hadoop.hbase.master.SplitWALProcedureManager;
 import org.apache.hadoop.hbase.master.assignment.AssignmentManager;
 import org.apache.hadoop.hbase.master.assignment.RegionStateNode;
 import org.apache.hadoop.hbase.master.assignment.TransitRegionStateProcedure;
 import org.apache.hadoop.hbase.monitoring.MonitoredTask;
 import org.apache.hadoop.hbase.monitoring.TaskMonitor;
 import org.apache.hadoop.hbase.procedure2.Procedure;
-import org.apache.hadoop.hbase.procedure2.ProcedureMetrics;
 import org.apache.hadoop.hbase.procedure2.ProcedureStateSerializer;
 import org.apache.hadoop.hbase.procedure2.ProcedureSuspendedException;
 import org.apache.hadoop.hbase.procedure2.ProcedureYieldException;
@@ -250,7 +249,8 @@ public class ServerCrashProcedure
   }
 
   private void cleanupSplitDir(MasterProcedureEnv env) {
-    SplitWALManager splitWALManager = env.getMasterServices().getSplitWALManager();
+    SplitWALProcedureManager
+      splitWALProcedureManager = env.getMasterServices().getSplitWALProcedureManager();
     try {
       if (!this.carryingMeta) {
         // If we are NOT carrying hbase:meta, check if any left-over hbase:meta WAL files from an
@@ -259,16 +259,17 @@ public class ServerCrashProcedure
         // on this condition.
         env.getMasterServices().getMasterWalManager().archiveMetaLog(this.serverName);
       }
-      splitWALManager.deleteWALDir(serverName);
+      splitWALProcedureManager.deleteWALDir(serverName);
     } catch (IOException e) {
       LOG.warn("Remove WAL directory for {} failed, ignore...{}", serverName, e.getMessage());
     }
   }
 
   private boolean isSplittingDone(MasterProcedureEnv env, boolean splitMeta) {
-    SplitWALManager splitWALManager = env.getMasterServices().getSplitWALManager();
+    SplitWALProcedureManager
+      splitWALProcedureManager = env.getMasterServices().getSplitWALProcedureManager();
     try {
-      int wals = splitWALManager.getWALsToSplit(serverName, splitMeta).size();
+      int wals = splitWALProcedureManager.getWALsToSplit(serverName, splitMeta).size();
       LOG.debug("Check if {} WAL splitting is done? wals={}, meta={}", serverName, wals, splitMeta);
       return wals == 0;
     } catch (IOException e) {
@@ -280,8 +281,9 @@ public class ServerCrashProcedure
   private Procedure[] createSplittingWalProcedures(MasterProcedureEnv env, boolean splitMeta)
       throws IOException {
     LOG.info("Splitting WALs {}, isMeta: {}", this, splitMeta);
-    SplitWALManager splitWALManager = env.getMasterServices().getSplitWALManager();
-    List<Procedure> procedures = splitWALManager.splitWALs(serverName, splitMeta);
+    SplitWALProcedureManager
+      splitWALProcedureManager = env.getMasterServices().getSplitWALProcedureManager();
+    List<Procedure> procedures = splitWALProcedureManager.splitWALs(serverName, splitMeta);
     return procedures.toArray(new Procedure[procedures.size()]);
   }
 

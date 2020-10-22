@@ -159,7 +159,7 @@ public class TestReportOnlineRegionsRace {
     TransitRegionStateProcedure proc =
       procExec.getProcedures().stream().filter(p -> p instanceof TransitRegionStateProcedure)
         .filter(p -> !p.isFinished()).map(p -> (TransitRegionStateProcedure) p).findAny().get();
-    IdLock procExecLock = procExec.getProcExecutionLock();
+    IdLock procExecLock = procExec.getProcExecutionExclusiveLock();
     // a CloseRegionProcedure and then the OpenRegionProcedure we want to block
     IdLock.Entry lockEntry = procExecLock.getLockEntry(proc.getProcId() + 2);
     // resume the reportRegionStateTransition to finish the CloseRegionProcedure

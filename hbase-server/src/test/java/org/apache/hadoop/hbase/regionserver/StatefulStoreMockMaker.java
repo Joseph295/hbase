@@ -55,7 +55,7 @@ public class StatefulStoreMockMaker {
 
   public HStore createStoreMock(String name) throws Exception {
     HStore store = mock(HStore.class, name);
-    when(store.requestCompaction(anyInt(), any(), any())).then(inv -> selectCompaction());
+    when(store.requestCompaction(anyInt(), any())).then(inv -> selectCompaction());
     when(store.getCompactPriority()).then(inv -> getPriority());
     doAnswer(new CancelAnswer()).when(store).cancelRequestedCompaction(any());
     return store;

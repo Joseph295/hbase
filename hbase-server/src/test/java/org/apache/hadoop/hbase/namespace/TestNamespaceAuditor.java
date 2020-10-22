@@ -487,7 +487,7 @@ public class TestNamespaceAuditor {
 
     @Override
     public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e, Store store,
-        StoreFile resultFile, CompactionLifeCycleTracker tracker, CompactionRequest request)
+        StoreFile resultFile, CompactionRequest request)
         throws IOException {
       postCompact.countDown();
     }

@@ -184,7 +184,7 @@ public class TestSCPGetRegionsRace {
     ARRIVE_REPORT.await();
     ARRIVE_REPORT = null;
     // let's get procedure lock to stop the TRSP
-    IdLock procExecutionLock = master.getMasterProcedureExecutor().getProcExecutionLock();
+    IdLock procExecutionLock = master.getMasterProcedureExecutor().getProcExecutionExclusiveLock();
     long procId = master.getProcedures().stream()
       .filter(p -> p instanceof RegionRemoteProcedureBase).findAny().get().getProcId();
     IdLock.Entry lockEntry = procExecutionLock.getLockEntry(procId);

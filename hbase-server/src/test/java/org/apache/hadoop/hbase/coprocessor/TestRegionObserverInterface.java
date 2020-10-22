@@ -553,7 +553,7 @@ public class TestRegionObserverInterface {
 
     @Override
     public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e, Store store,
-        StoreFile resultFile, CompactionLifeCycleTracker tracker, CompactionRequest request) {
+        StoreFile resultFile, CompactionRequest request) {
       lastCompaction = EnvironmentEdgeManager.currentTime();
     }
 

@@ -255,7 +255,7 @@ public class ProcedureExecutor<TEnvironment> {
   // executed in parallel. This does lead to some problems, see HBASE-20939&HBASE-20949, and is also
   // a bit confusing to the developers. So here we introduce this lock to prevent the concurrent
   // execution of the same procedure.
-  private final IdLock procExecutionLock = new IdLock();
+  private final IdLock procExecutionExclusiveLock = new IdLock();
 
   public ProcedureExecutor(final Configuration conf, final TEnvironment environment,
       final ProcedureStore store) {
@@ -268,7 +268,7 @@ public class ProcedureExecutor<TEnvironment> {
   }
 
   private void forceUpdateProcedure(long procId) throws IOException {
-    IdLock.Entry lockEntry = procExecutionLock.getLockEntry(procId);
+    IdLock.Entry lockEntry = procExecutionExclusiveLock.getLockEntry(procId);
     try {
       Procedure<TEnvironment> proc = procedures.get(procId);
       if (proc != null) {
@@ -295,7 +295,7 @@ public class ProcedureExecutor<TEnvironment> {
       LOG.debug("Force update procedure {}", proc);
       store.update(proc);
     } finally {
-      procExecutionLock.releaseLockEntry(lockEntry);
+      procExecutionExclusiveLock.releaseLockEntry(lockEntry);
     }
   }
 
@@ -624,7 +624,7 @@ public class ProcedureExecutor<TEnvironment> {
     workerMonitorExecutor.add(new WorkerMonitor());
 
     // Add completed cleaner chore
-    addChore(new CompletedProcedureCleaner<>(conf, store, procExecutionLock, completed,
+    addChore(new CompletedProcedureCleaner<>(conf, store, procExecutionExclusiveLock, completed,
       nonceKeysToProcIdsMap));
   }
 
@@ -925,7 +925,7 @@ public class ProcedureExecutor<TEnvironment> {
 
     LOG.debug("Begin bypass {} with lockWait={}, override={}, recursive={}",
         procedure, lockWait, override, recursive);
-    IdLock.Entry lockEntry = procExecutionLock.tryLockEntry(procedure.getProcId(), lockWait);
+    IdLock.Entry lockEntry = procExecutionExclusiveLock.tryLockEntry(procedure.getProcId(), lockWait);
     if (lockEntry == null && !override) {
       LOG.debug("Waited {} ms, but {} is still running, skipping bypass with force={}",
           lockWait, procedure, override);
@@ -1016,7 +1016,7 @@ public class ProcedureExecutor<TEnvironment> {
 
     } finally {
       if (lockEntry != null) {
-        procExecutionLock.releaseLockEntry(lockEntry);
+        procExecutionExclusiveLock.releaseLockEntry(lockEntry);
       }
     }
   }
@@ -1492,9 +1492,9 @@ public class ProcedureExecutor<TEnvironment> {
       // RootProcedureState where we can make sure that only one worker can execute the rollback of
       // a RootProcedureState, so there is no dead lock problem. And the lock here is necessary to
       // prevent race between us and the force update thread.
-      if (!procExecutionLock.isHeldByCurrentThread(proc.getProcId())) {
+      if (!procExecutionExclusiveLock.isHeldByCurrentThread(proc.getProcId())) {
         try {
-          lockEntry = procExecutionLock.getLockEntry(proc.getProcId());
+          lockEntry = procExecutionExclusiveLock.getLockEntry(proc.getProcId());
         } catch (IOException e) {
           // can only happen if interrupted, so not a big deal to propagate it
           throw new UncheckedIOException(e);
@@ -1545,7 +1545,7 @@ public class ProcedureExecutor<TEnvironment> {
         }
       } finally {
         if (lockEntry != null) {
-          procExecutionLock.releaseLockEntry(lockEntry);
+          procExecutionExclusiveLock.releaseLockEntry(lockEntry);
         }
       }
     }
@@ -1943,8 +1943,8 @@ public class ProcedureExecutor<TEnvironment> {
   }
 
   @VisibleForTesting
-  public IdLock getProcExecutionLock() {
-    return procExecutionLock;
+  public IdLock getProcExecutionExclusiveLock() {
+    return procExecutionExclusiveLock;
   }
 
   // ==========================================================================
@@ -1983,14 +1983,14 @@ public class ProcedureExecutor<TEnvironment> {
           LOG.trace("Execute pid={} runningCount={}, activeCount={}", proc.getProcId(),
             runningCount, activeCount);
           executionStartTime.set(EnvironmentEdgeManager.currentTime());
-          IdLock.Entry lockEntry = procExecutionLock.getLockEntry(proc.getProcId());
+          IdLock.Entry lockEntry = procExecutionExclusiveLock.getLockEntry(proc.getProcId());
           try {
             executeProcedure(proc);
           } catch (AssertionError e) {
             LOG.info("ASSERT pid=" + proc.getProcId(), e);
             throw e;
           } finally {
-            procExecutionLock.releaseLockEntry(lockEntry);
+            procExecutionExclusiveLock.releaseLockEntry(lockEntry);
             activeCount = activeExecutorCount.decrementAndGet();
             runningCount = store.setRunningProcedureCount(activeCount);
             LOG.trace("Halt pid={} runningCount={}, activeCount={}", proc.getProcId(),

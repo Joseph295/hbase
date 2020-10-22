@@ -158,7 +158,7 @@ public class CompactionTool extends Configured implements Tool {
       }
       do {
         Optional<CompactionContext> compaction =
-            store.requestCompaction(PRIORITY_USER, CompactionLifeCycleTracker.DUMMY, null);
+            store.requestCompaction(PRIORITY_USER, null);
         if (!compaction.isPresent()) {
           break;
         }

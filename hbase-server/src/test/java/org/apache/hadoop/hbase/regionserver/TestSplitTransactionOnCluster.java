@@ -350,7 +350,7 @@ public class TestSplitTransactionOnCluster {
     assertEquals(compactionContext.get().getRequest().getPriority(), Integer.MIN_VALUE + 1000);
 
     compactionContext =
-      hStore2.requestCompaction(Integer.MIN_VALUE + 10, CompactionLifeCycleTracker.DUMMY, null);
+      hStore2.requestCompaction(Integer.MIN_VALUE + 10, null);
     assertTrue(compactionContext.isPresent());
     // compaction request contains higher priority than default priority of daughter region
     // compaction (Integer.MIN_VALUE + 1000), hence we are expecting request priority to
